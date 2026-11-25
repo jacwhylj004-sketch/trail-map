@@ -41,6 +41,8 @@ svg { width: 24px; height: 24px; flex: none; }
 .fab { width: 60px; height: 60px; border-radius: 20px; border: 0; background: var(--surface); box-shadow: var(--shadow); display: grid; place-items: center; }
 .fab.small { width: 46px; height: 46px; border-radius: 15px; }
 .fab.on { background: var(--accent-soft); color: var(--accent); }
+.fab.recording { background: #e5342b; animation: pulse 1.6s ease-in-out infinite; } .fab.recording circle { fill: #fff; } .fab.recording svg { color: #fff; }
+@keyframes pulse { 50% { opacity: .65; } }
 .fab.heading { background: var(--accent); color: var(--on-accent); }
 
 #gps { position: fixed; z-index: 8; left: 10px; bottom: calc(var(--nav-h) + var(--safe-b) + 40px); border: 0; background: var(--surface); box-shadow: var(--shadow); border-radius: 16px; padding: 8px 14px; display: flex; gap: 14px; text-align: left; max-width: calc(100% - 90px); }

@@ -29,7 +29,7 @@ async function buildStyle() {
     slope: { type: "raster", tiles: ["tm://slope/{z}/{x}/{y}"], tileSize: 256, maxzoom: DEM_MAX },
     osgrid: { type: "geojson", data: EMPTY },
     routes: { type: "geojson", data: EMPTY, attribution: OVERPASS_CREDIT },
-    plan: { type: "geojson", data: EMPTY }, accuracy: { type: "geojson", data: EMPTY }, saved: { type: "geojson", data: EMPTY }
+    plan: { type: "geojson", data: EMPTY }, track: { type: "geojson", data: EMPTY }, accuracy: { type: "geojson", data: EMPTY }, saved: { type: "geojson", data: EMPTY }
   });
 
   const layers = style.layers.filter(l => l.id !== "natural_earth" && l.id !== "building-3d");
@@ -81,6 +81,8 @@ async function buildStyle() {
     { id: "accuracy", type: "fill", source: "accuracy", paint: { "fill-color": "#1a73e8", "fill-opacity": 0.12 } },
     { id: "plan-casing", type: "line", source: "plan", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#ffffff", "line-width": 8 } },
     { id: "plan-line", type: "line", source: "plan", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#0b57d0", "line-width": 5 } },
+    { id: "track-casing", type: "line", source: "track", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#ffffff", "line-width": 8 } },
+    { id: "track-line", type: "line", source: "track", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#ff5a00", "line-width": 4.5 } },
     { id: "saved-dot", type: "circle", source: "saved", paint: { "circle-radius": 7, "circle-color": "#f9ab00", "circle-stroke-color": "#fff", "circle-stroke-width": 2 } },
     { id: "saved-label", type: "symbol", source: "saved", minzoom: 10, layout: { "text-field": ["get", "name"], "text-font": bold, "text-size": 12, "text-anchor": "top", "text-offset": [0, 0.8], "text-optional": true }, paint: text("#6b4a00") }
   );

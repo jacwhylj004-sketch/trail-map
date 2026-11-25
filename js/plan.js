@@ -1,10 +1,12 @@
 "use strict";
 /* Place search, directions, measuring, height profiles, and saved places and routes. */
 
-const SAVED = Object.assign({ places: [], routes: [] }, loadJSON("tm-saved", {}));
+const SAVED = Object.assign({ places: [], routes: [], tracks: [] }, loadJSON("tm-saved", {}));
 function persistSaved() {
-  if (!saveJSON("tm-saved", SAVED)) toast("Couldn't save: storage is full");
+  const ok = saveJSON("tm-saved", SAVED);
+  if (!ok) toast("Couldn't save: storage is full");
   drawSaved();
+  return ok;
 }
 const drawSaved = () => setData("saved", { type: "FeatureCollection", features: SAVED.places.map(p => ({ type: "Feature", properties: { id: p.id, name: p.name }, geometry: { type: "Point", coordinates: p.ll } })) });
 

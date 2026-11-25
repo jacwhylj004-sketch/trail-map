@@ -1,23 +1,23 @@
 {
-    "build":  2,
-    "name":  "1.1",
-    "shell":  2,
-    "notes":  "Update button, and new terrain settings: OS-style paper map, height colours, steepness, contour spacing, shading strength and 3D height.",
+    "build":  3,
+    "name":  "1.2",
+    "shell":  3,
+    "notes":  "Track recording: record your walk, even with the screen off. Needs the new app file.",
     "files":  [
                   {
                       "path":  "app.css",
-                      "sha256":  "9ebd845b3a87354b2e4852a4a3aecf421f9313944bf6b354bbb4af1f20e66a24",
-                      "size":  10596
+                      "sha256":  "dfd5767d8dd5ee0f7c757b15588834aceaec46cde35c18c32c7b5c9f9ecdc907",
+                      "size":  10797
                   },
                   {
                       "path":  "index.html",
-                      "sha256":  "844814c6c1cad9a0606f3ddda50ae31f7d4b54bbd95b09d5cb4c54a9a34a91e2",
-                      "size":  3270
+                      "sha256":  "77f2ac207a52b492bbc3b0bc787cc19e4dfc8f876e16213e480fc9385a9467a9",
+                      "size":  3403
                   },
                   {
                       "path":  "version.json",
-                      "sha256":  "c3c423386933adcbe4f34c4fbe566d9459b3023d03f606c3d86900738773089e",
-                      "size":  215
+                      "sha256":  "bdacdd5b7ce772efc1e081e9c712fe89e9ab04fa5b13e56a341c63e993ef82ed",
+                      "size":  163
                   },
                   {
                       "path":  "js/core.js",
@@ -26,8 +26,8 @@
                   },
                   {
                       "path":  "js/map.js",
-                      "sha256":  "9c375cf0c04cb4fc619bd91c6c2f21d8bf181f160bea4943a3ca72e0d87eb50f",
-                      "size":  18007
+                      "sha256":  "62a6c3aaec09893e4314072eddeec2202c1c55e7ac921eb310b06cd31e2ba2e8",
+                      "size":  18382
                   },
                   {
                       "path":  "js/offline.js",
@@ -41,8 +41,13 @@
                   },
                   {
                       "path":  "js/plan.js",
-                      "sha256":  "1755b16dd18664bbaefd9733705381d82ea7cf6dbb217dc84f2e4d187da69ab5",
-                      "size":  7736
+                      "sha256":  "7dc2f605d7ca56de70c89de3d7d4a9658819c9225bc3094de7f169d5ecf3759a",
+                      "size":  7778
+                  },
+                  {
+                      "path":  "js/record.js",
+                      "sha256":  "f40866ee976307800df81e4c0d5b51b0c4ce73e381f6b9dfdff151c7cbf6807c",
+                      "size":  6073
                   },
                   {
                       "path":  "js/routes.js",
@@ -51,8 +56,8 @@
                   },
                   {
                       "path":  "js/ui.js",
-                      "sha256":  "2ab846588fb2ab8ef7428bdf1c14bc8753e9a997beab68272c4f325e7e7f12b4",
-                      "size":  37548
+                      "sha256":  "4b958de8af53f8e22598374cb2ba76a88203097dea6e1415f432b832e6c5ee73",
+                      "size":  43800
                   },
                   {
                       "path":  "js/update.js",

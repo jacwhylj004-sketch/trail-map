@@ -16,6 +16,7 @@ const ICON = {
   star: svg('<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>'),
   gear: svg('<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z"/>')
 };
+ICON.record = svg('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5" fill="#e5342b" stroke="none"/>');
 const PIN = '<svg viewBox="0 0 30 38" aria-hidden="true"><path d="M15 1C7 1 1.5 7 1.5 14.2 1.5 24 15 37 15 37s13.500-13 13.500-22.8C28.500 7 23 1 15 1z" fill="currentColor" stroke="#fff" stroke-width="2"/><circle cx="15" cy="14" r="5" fill="#fff"/></svg>';
 
 /* ---- little pop-ups ---- */
@@ -69,7 +70,7 @@ function floating() {
   $("#fabs").hidden = !$("#area").hidden || (!!UI.sheet && $("#sheet").offsetHeight > innerHeight * 0.6);
   $("#fabs").style.bottom = UI.sheet && innerHeight > 500 ? `calc(var(--nav-h) + var(--safe-b) + ${$("#sheet").offsetHeight + 10}px)` : "";
   const room = !UI.sheet || $("#sheet").offsetHeight < innerHeight * 0.4;
-  ["#fab-in", "#fab-out"].forEach(s => { $(s).hidden = covered; });
+  ["#fab-in", "#fab-out", "#fab-rec"].forEach(s => { $(s).hidden = covered; });
   $("#fab-layers").hidden = !room;
   renderGPS();
 }
@@ -79,7 +80,7 @@ const stat = (label, value) => `<div class="stat"><b>${esc(value)}</b><span>${la
 function renderSheet() {
   if (!UI.sheet) return;
   const body = $("#sheet-body"), title = t => { $("#sheet-title").textContent = t; };
-  $("#sheet").classList.toggle("tall", ["search", "saved", "route"].includes(UI.sheet));
+  $("#sheet").classList.toggle("tall", ["search", "saved", "route", "trackview"].includes(UI.sheet));
   const view = SHEETS[UI.sheet];
   const [t, html] = view(UI.data);
   title(t); body.innerHTML = html;
@@ -155,17 +156,43 @@ const SHEETS = {
     }
     return [r && r.saved ? r.saved.name : s.measure ? "Measure distance" : "Directions", out];
   },
+  record() {
+    const s = Rec.status();
+    if (!Rec.supported()) return ["Record a walk", '<p>Recording needs the newest Trail Map app file. Ask Claude for it.</p>'];
+    const tip = '<p class="muted small">Recording carries on with the screen off. On a Samsung phone, also set Settings &gt; Apps &gt; Trail Map &gt; Battery to Unrestricted so the phone doesn’t stop it.</p>';
+    if (s === "idle") return ["Record a walk", `<p>Your path is drawn on the map as you go, with distance, time and climb.</p><button class="btn primary" data-act="rec-start">${ICON.record}Start recording</button>${tip}`];
+    const note = { paused: "Paused. Nothing is being recorded.", interrupted: "Recording stopped unexpectedly. What was recorded is safe: continue, or finish and save it.", stopped: "Finished. Save this walk, or carry on." }[s] || (Rec.figures().points ? "" : "Waiting for a good GPS signal…");
+    const buttons = Rec.saving() ? '<p class="muted">Saving…</p>'
+      : s === "recording" ? '<button class="btn" data-act="rec-pause">Pause</button><button class="btn primary" data-act="rec-finish">Finish</button>'
+      : s === "stopped" ? '<button class="btn primary" data-act="rec-save">Save walk</button><button class="btn" data-act="rec-resume">Carry on</button><button class="btn danger" data-act="rec-discard">Discard</button>'
+      : '<button class="btn primary" data-act="rec-resume">Continue</button><button class="btn" data-act="rec-finish">Finish</button>';
+    const title = { recording: "Recording", paused: "Recording paused", interrupted: "Recording interrupted", stopped: "Your walk" }[s];
+    return [title, `${note ? `<p class="${s === "interrupted" ? "warn" : "muted"} small">${note}</p>` : ""}<div id="rec-stats" class="stats">${recStats()}</div><div class="row">${buttons}</div>${s === "recording" ? tip : ""}`];
+  },
+  trackview(t) {
+    return [t.name, `<p class="muted small">Recorded ${esc(new Date(t.date).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }))}</p>
+      <div class="stats">${stat("Distance", fmtDist(t.distance))}${stat("Time", fmtTime(t.elapsed))}${stat("Moving", fmtTime(t.moving))}${stat("Climb", fmtHeight(t.up))}${stat("Moving speed", t.moving ? fmtSpeed(t.distance / t.moving) : "–")}</div>
+      ${t.profile ? profileSVG(t.profile) : ""}
+      <div class="row"><button class="btn primary" data-act="track-fit">Show on map</button><button class="btn" data-act="track-rename">Rename</button><button class="btn" data-act="track-hide">Remove from map</button><button class="btn danger" data-act="track-delete">Delete</button></div>`];
+  },
   saved() {
     const pos = GPS.state.pos;
+    const tracks = SAVED.tracks.map(t => `<button class="item" data-act="track" data-id="${t.id}"><span class="swatch" style="background:#ff5a00"></span><span class="grow">${esc(t.name)}<small>${esc(fmtDist(t.distance) + " · " + fmtTime(t.elapsed) + " · " + new Date(t.date).toLocaleDateString("en-GB"))}</small></span></button>`).join("");
     const places = SAVED.places.map(p => `<button class="item" data-act="place" data-id="${p.id}"><span class="grow">${esc(p.name)}<small>${esc([OSGB.ref(p.ll[1], p.ll[0]) || p.ll[1].toFixed(4) + ", " + p.ll[0].toFixed(4), pos ? fmtDist(haversine(pos.ll, p.ll)) + " away" : ""].filter(Boolean).join(" · "))}</small></span></button>`).join("");
     const walks = SAVED.routes.map(r => `<button class="item" data-act="walk" data-id="${r.id}"><span class="grow">${esc(r.name)}<small>${esc(fmtDist(r.distance) + (r.profile ? " · " + fmtHeight(r.profile.up) + " climb" : ""))}</small></span></button>`).join("");
-    return ["Saved", `<h3>Walks</h3>${walks || '<p class="muted small">Plan a walk in Directions, then tap Save this walk. Saved walks work offline.</p>'}<h3>Places</h3>${places || '<p class="muted small">Press and hold the map, then tap Save place.</p>'}`];
+    return ["Saved", `<h3>Recorded walks</h3>${tracks || '<p class="muted small">Tap the record button on the map to record a walk.</p>'}<h3>Planned walks</h3>${walks || '<p class="muted small">Plan a walk in Directions, then tap Save this walk. Saved walks work offline.</p>'}<h3>Places</h3>${places || '<p class="muted small">Press and hold the map, then tap Save place.</p>'}`];
   },
   search(s) {
     const item = (r, i) => `<button class="item" data-act="result" data-i="${i}"><span class="grow">${esc(r.name)}<small>${esc(r.detail || "")}</small></span></button>`;
     return ["Search results", s.items.map(item).join("") + (s.loading ? '<p class="muted">Searching…</p>' : "") + (s.error ? `<p class="warn">${esc(s.error)}</p>` : "") + (!s.loading && !s.error && !s.items.length ? '<p class="muted">Nothing found.</p>' : "")];
   }
 };
+function recStats() {
+  const f = Rec.figures();
+  const clock = s => `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, "0")}:${String(Math.floor(s) % 60).padStart(2, "0")}`;
+  return stat("Distance", fmtDist(f.distance)) + stat("Time", clock(f.elapsed)) + stat("Moving", clock(f.moving)) + stat("Climb (GPS, rough)", fmtHeight(f.climb)) + stat("Moving speed", f.moving > 30 ? fmtSpeed(f.distance / f.moving) : "–");
+}
+const showTrack = t => { Plan.clear(); setData("plan", { type: "Feature", properties: {}, geometry: { type: "MultiLineString", coordinates: t.lines } }); openSheet("trackview", t); fit(t.lines.flat()); };
 const tagDistance = d => /^\s*[\d.]+\s*$/.test(d) ? fmtDist(parseFloat(d) * 1000) : d;
 
 function showCard(c) {
@@ -178,7 +205,11 @@ function renderGPS() {
   const p = GPS.state.pos, f = GPS.follow(), box = $("#gps"), btn = $("#fab-locate");
   btn.className = "fab" + (f === "heading" ? " heading" : f === "follow" ? " on" : "");
   btn.innerHTML = f === "heading" ? ICON.heading : ICON.locate;
-  box.hidden = !!UI.sheet || !$("#area").hidden || (!p && !GPS.state.error);
+  const rec = Rec.status(), recButton = $("#fab-rec");
+  recButton.classList.toggle("recording", rec === "recording");
+  box.dataset.act = Rec.active() ? "record" : "where";
+  box.hidden = !!UI.sheet || !$("#area").hidden || (!Rec.active() && !p && !GPS.state.error);
+  if (Rec.active()) { const f = Rec.figures(); box.innerHTML = `<div><b>${fmtDist(f.distance)}</b><span>${{ recording: "● Recording", paused: "Paused", interrupted: "Interrupted", stopped: "Not saved yet" }[rec]}</span></div><div><b>${fmtTime(f.elapsed)}</b><span>Time</span></div><div><b>${p ? fmtHeight(p.altitude) : "–"}</b><span>Altitude</span></div>`; return; }
   box.innerHTML = p ? `<div><b>${fmtHeight(p.altitude)}</b><span>Altitude</span></div><div><b>${fmtSpeed(p.speed)}</b><span>Speed</span></div><div><b>±${fmtHeight(p.accuracy)}</b><span>Accuracy</span></div>` : `<div class="small">${esc(GPS.state.error)}</div>`;
 }
 function renderChip() {
@@ -295,6 +326,21 @@ const ACTIONS = {
     if ($("#page").hidden) { renderSheet(); floating(); } else renderSettings();
   },
   "update-check": () => Update.check(true),
+  record: () => { UI.tab = "map"; nav(); openSheet("record"); },
+  "rec-start": () => { Rec.start(); GPS.setFollow("follow"); },
+  "rec-pause": () => Rec.pause(),
+  "rec-resume": () => Rec.resume(),
+  "rec-finish": () => Rec.finish(),
+  "rec-save": async () => {
+    const name = await dialog({ title: "Save walk", input: "Walk " + new Date().toLocaleDateString("en-GB"), yes: "Save" }); if (!name) return;
+    const t = await Rec.save(name); if (t) { toast("Walk saved"); showTrack(t); }
+  },
+  "rec-discard": async () => { if (await dialog({ title: "Discard this recording?", text: "The walk you just recorded will be deleted. This can't be undone.", yes: "Discard" })) { Rec.discard(); goTab("map"); } },
+  track: d => { const t = SAVED.tracks.find(x => x.id === d.id); if (t) showTrack(t); },
+  "track-fit": () => fit(UI.data.lines.flat()),
+  "track-hide": () => { setData("plan", EMPTY); goTab("map"); },
+  "track-rename": async () => { const t = UI.data; const name = await dialog({ title: "Rename walk", input: t.name, yes: "Save" }); if (name) { t.name = name; persistSaved(); renderSheet(); } },
+  "track-delete": async () => { const t = UI.data; if (await dialog({ title: "Delete recorded walk?", text: t.name, yes: "Delete" })) { SAVED.tracks = SAVED.tracks.filter(x => x.id !== t.id); persistSaved(); setData("plan", EMPTY); goTab("saved"); } },
   "update-install": () => Update.install(),
   "routes-on": () => { SETTINGS.routes = true; saveSettings(); applyLayers(); Routes.refresh(); renderSheet(); },
   route: d => { const r = Routes.get(+d.id); if (r) openRoute(r); },
@@ -386,6 +432,7 @@ window.applyTheme = applyTheme;
 window.appBack = () => {
   if (!$("#dialog").hidden) { dialogDone && dialogDone(null); return true; }
   if (!$("#area").hidden) { closeArea(); goTab("settings"); return true; }
+  if (UI.sheet === "trackview") { openSheet("saved"); UI.tab = "saved"; nav(); return true; }
   if (UI.sheet === "route" || (UI.sheet === "card" && UI.tab === "saved")) { openSheet(UI.tab === "saved" ? "saved" : "routes"); return true; }
   if (UI.sheet || !$("#page").hidden) { goTab("map"); return true; }
   return false;
@@ -432,7 +479,7 @@ function followRoutes() { if (Date.now() - lastFollow > 20000) { lastFollow = Da
 (async function start() {
   applyTheme(); nav();
   $("#search-go").innerHTML = ICON.search; $("#search-x").innerHTML = ICON.close; $("#sheet-x").innerHTML = ICON.close;
-  $("#fab-layers").innerHTML = ICON.layers; $("#fab-north").innerHTML = ICON.north; $("#fab-in").innerHTML = ICON.plus; $("#fab-out").innerHTML = ICON.minus;
+  $("#fab-layers").innerHTML = ICON.layers; $("#fab-north").innerHTML = ICON.north; $("#fab-rec").innerHTML = ICON.record; $("#fab-in").innerHTML = ICON.plus; $("#fab-out").innerHTML = ICON.minus;
   try { await createMap(); }
   catch (e) { map = null; toast("The map couldn't start: " + e.message); return; }
   wireMap(); drawSaved(); renderGPS();
@@ -452,6 +499,14 @@ function followRoutes() { if (Date.now() - lastFollow > 20000) { lastFollow = Da
   if (NATIVE && NATIVE.appReady) NATIVE.appReady(); // this version works: keep it
   Update.onChange(() => { nav(); if (!$("#page").hidden) renderSettings(); });
   Update.check(false);
+  let shown = Rec.status();
+  Rec.onChange(() => {
+    const now = Rec.status() + Rec.saving();
+    renderGPS();
+    if (UI.sheet === "record") { const stats = $("#rec-stats"); if (now === shown && stats && Rec.figures().points) stats.innerHTML = recStats(); else { renderSheet(); floating(); } }
+    shown = now;
+  });
+  Rec.poll();
   keepAwake(SETTINGS.awake);
   GPS.setFollow("follow");
 })();
