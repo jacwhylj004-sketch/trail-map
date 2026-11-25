@@ -1,8 +1,8 @@
 {
-    "build":  7,
-    "name":  "1.6",
+    "build":  8,
+    "name":  "1.7",
     "shell":  5,
-    "notes":  "Imported maps draw faster when zoomed out, especially offline.",
+    "notes":  "Tells you to zoom in when an imported map has nothing to show that far out. Newest map files show at every distance.",
     "files":  [
                   {
                       "path":  "app.css",
@@ -16,8 +16,8 @@
                   },
                   {
                       "path":  "version.json",
-                      "sha256":  "e9061fd3579c797691b84071e6089faf285f84b2966fe34c46540cdd23aed5f3",
-                      "size":  141
+                      "sha256":  "db6571a20fbe793559ecb648112aef4897a38b80beaf1e16de7734f15c60ebaa",
+                      "size":  195
                   },
                   {
                       "path":  "js/back.js",
@@ -56,8 +56,8 @@
                   },
                   {
                       "path":  "js/packs.js",
-                      "sha256":  "ee792c211c79f413c28dae9e65877c18a8efc2a5f3f9cf1ca47c8cbed695ab1f",
-                      "size":  14902
+                      "sha256":  "55bd60335705a76a1a616dff53bf5344fc2b63a76f647471144cc2a889291048",
+                      "size":  15144
                   },
                   {
                       "path":  "js/paths.js",
@@ -81,8 +81,8 @@
                   },
                   {
                       "path":  "js/ui.js",
-                      "sha256":  "2b9a11f445e5fd9ec7e1519268ec334d7b84e301ece47e61e4af1581351343b4",
-                      "size":  48580
+                      "sha256":  "bddc46c762785f89c723af982c62cec5ad24358b9c7cef2ec99d40b58384b576",
+                      "size":  48641
                   },
                   {
                       "path":  "js/update.js",

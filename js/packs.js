@@ -210,6 +210,8 @@ const Packs = (() => {
 
   return {
     load, tile, apply, panel,
+    /* Words for the top of the screen when zoomed too far out for the imported map to have anything to show. */
+    hint: m => SETTINGS.base === "tt" && list.length && m.getZoom() < lowest() - 0.05 ? "Zoom in to see your imported map" : "",
     any: () => list.length > 0, names: () => list.map(p => p.name).join(", "), get: id => list.find(p => p.id === id),
     pick: () => native() && native().packImport(),
     async remove(id) { native().packDelete(id); await load(); changed(); },

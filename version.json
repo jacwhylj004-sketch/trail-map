@@ -1,6 +1,6 @@
 {
-    "build":  7,
-    "name":  "1.6",
+    "build":  8,
+    "name":  "1.7",
     "shell":  5,
-    "notes":  "Imported maps draw faster when zoomed out, especially offline."
+    "notes":  "Tells you to zoom in when an imported map has nothing to show that far out. Newest map files show at every distance."
 }

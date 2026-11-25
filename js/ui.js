@@ -231,7 +231,7 @@ function renderGPS() {
   box.innerHTML = p ? `<div><b>${fmtHeight(p.altitude)}</b><span>Altitude</span></div><div><b>${fmtSpeed(p.speed)}</b><span>Speed</span></div><div><b>±${fmtHeight(p.accuracy)}</b><span>Accuracy</span></div>` : `<div class="small">${esc(GPS.state.error)}</div>`;
 }
 function renderChip() {
-  const text = [navigator.onLine ? "" : "Offline: showing downloaded maps", SETTINGS.routes && /Loading|Couldn't|busy/.test(Routes.status()) ? Routes.status() : "",
+  const text = [map ? Packs.hint(map) : "", navigator.onLine ? "" : "Offline: showing downloaded maps", SETTINGS.routes && /Loading|Couldn't|busy/.test(Routes.status()) ? Routes.status() : "",
     Offline.job() ? `Downloading ${Math.round(Offline.job().done / Offline.job().total * 100)}%` : ""].filter(Boolean).join(" · ");
   $("#chip").textContent = text; $("#chip").hidden = !text;
 }
@@ -508,6 +508,7 @@ function wireMap() {
   map.on("dragstart", () => { if (GPS.follow() !== "off") GPS.setFollow("off"); });
   map.on("rotate", () => { const b = map.getBearing(); $("#fab-north").hidden = Math.abs(b) < 1; const i = $("#fab-north svg"); if (i) i.style.transform = `rotate(${-b}deg)`; });
   map.on("move", areaSize);
+  map.on("zoomend", renderChip);
   map.on("moveend", e => { if (!e.gps || GPS.follow() === "off") { Routes.schedule(); Barriers.schedule(); } else followRoutes(); });
 }
 /* While following you, only look for new routes now and then. */
