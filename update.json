@@ -1,0 +1,163 @@
+{
+    "build":  2,
+    "name":  "1.1",
+    "shell":  2,
+    "notes":  "Update button, and new terrain settings: OS-style paper map, height colours, steepness, contour spacing, shading strength and 3D height.",
+    "files":  [
+                  {
+                      "path":  "app.css",
+                      "sha256":  "9ebd845b3a87354b2e4852a4a3aecf421f9313944bf6b354bbb4af1f20e66a24",
+                      "size":  10596
+                  },
+                  {
+                      "path":  "index.html",
+                      "sha256":  "844814c6c1cad9a0606f3ddda50ae31f7d4b54bbd95b09d5cb4c54a9a34a91e2",
+                      "size":  3270
+                  },
+                  {
+                      "path":  "version.json",
+                      "sha256":  "c3c423386933adcbe4f34c4fbe566d9459b3023d03f606c3d86900738773089e",
+                      "size":  215
+                  },
+                  {
+                      "path":  "js/core.js",
+                      "sha256":  "9ee955207a564bd4e62817bfe5f8909d21c41c1d321a78bb4a7231d0607e5e52",
+                      "size":  9538
+                  },
+                  {
+                      "path":  "js/map.js",
+                      "sha256":  "9c375cf0c04cb4fc619bd91c6c2f21d8bf181f160bea4943a3ca72e0d87eb50f",
+                      "size":  18007
+                  },
+                  {
+                      "path":  "js/offline.js",
+                      "sha256":  "dde3b0a9e1a80c11bf14f37bdf9748f4e6fa70a0608ef8d28d5f6fde59ab8931",
+                      "size":  11260
+                  },
+                  {
+                      "path":  "js/osmap.js",
+                      "sha256":  "a6c1150739e7da30629f97ab4101b0f90b229c8f46d08a448fc9b427778ae828",
+                      "size":  13049
+                  },
+                  {
+                      "path":  "js/plan.js",
+                      "sha256":  "1755b16dd18664bbaefd9733705381d82ea7cf6dbb217dc84f2e4d187da69ab5",
+                      "size":  7736
+                  },
+                  {
+                      "path":  "js/routes.js",
+                      "sha256":  "c71a2b02a256cf3906d55f0dc8103bab9d43ccf89b7bc6b95411daeba70847b4",
+                      "size":  9273
+                  },
+                  {
+                      "path":  "js/ui.js",
+                      "sha256":  "2ab846588fb2ab8ef7428bdf1c14bc8753e9a997beab68272c4f325e7e7f12b4",
+                      "size":  37548
+                  },
+                  {
+                      "path":  "js/update.js",
+                      "sha256":  "5b21bf8bfa15e0936d7c4d16cd37b8718d97a4a396e83d1ea559d2aa024c5ca0",
+                      "size":  3204
+                  },
+                  {
+                      "path":  "vendor/maplibre-contour.js",
+                      "sha256":  "1d033eb2af0a08da379126c6c7c0b8f3cf56f21eb4a6d85e3551549e4055f407",
+                      "size":  31972
+                  },
+                  {
+                      "path":  "vendor/maplibre-gl.css",
+                      "sha256":  "ab1e70d59ec40465bae7e7030da2f3ccf28133fd502e62bd598eefbadfd7a732",
+                      "size":  70024
+                  },
+                  {
+                      "path":  "vendor/maplibre-gl.js",
+                      "sha256":  "45a9b07a9189ce56054c620a947ccf41e291e58c95e9b61533b740aaa65ee5cb",
+                      "size":  1056837
+                  },
+                  {
+                      "path":  "vendor/style.json",
+                      "sha256":  "408245464e76791801a64393c403433d09e8110eb9516040f8dc2b62584eee2a",
+                      "size":  43311
+                  },
+                  {
+                      "path":  "vendor/fonts/Noto Sans Bold/0-255.pbf",
+                      "sha256":  "f60ce4cb899455c2203bd8293b550394ade53ffce8032bf9cc7f59255e49259c",
+                      "size":  81170
+                  },
+                  {
+                      "path":  "vendor/fonts/Noto Sans Bold/256-511.pbf",
+                      "sha256":  "77c830f114b84a58f8829ca1eac4627a6a688bbce4bdb6a04de00f98fa74bb52",
+                      "size":  134545
+                  },
+                  {
+                      "path":  "vendor/fonts/Noto Sans Bold/7680-7935.pbf",
+                      "sha256":  "abe63a2773dd655bfbcd400b431add586e3da5e6e4801b74774e4a089a56dc29",
+                      "size":  139322
+                  },
+                  {
+                      "path":  "vendor/fonts/Noto Sans Bold/8192-8447.pbf",
+                      "sha256":  "f31c3c9dcacbd7f9760462c0af5017d9c9f2a9543ab4938476f7a13ffabf0acf",
+                      "size":  35678
+                  },
+                  {
+                      "path":  "vendor/fonts/Noto Sans Italic/0-255.pbf",
+                      "sha256":  "ae9c8894b4d2b6297da76a2e875685046f1f037f1a571ae006160a5540406086",
+                      "size":  79907
+                  },
+                  {
+                      "path":  "vendor/fonts/Noto Sans Italic/256-511.pbf",
+                      "sha256":  "82be737a8568cc3ef2beaa3f137d8698740ffef1b880076f21c2796c9e0c8c00",
+                      "size":  132406
+                  },
+                  {
+                      "path":  "vendor/fonts/Noto Sans Italic/7680-7935.pbf",
+                      "sha256":  "200d1c91ac1cf3201331b31bc498588ba0d5ee35e5ec5513d6dd23eaa3a1d5aa",
+                      "size":  135515
+                  },
+                  {
+                      "path":  "vendor/fonts/Noto Sans Italic/8192-8447.pbf",
+                      "sha256":  "da51f9be11f7bddc1c5ea052c1305eb9440790ad7cb79bf27e57f7a04c952427",
+                      "size":  34787
+                  },
+                  {
+                      "path":  "vendor/fonts/Noto Sans Regular/0-255.pbf",
+                      "sha256":  "ef1f38a3f1978591e846e9eaddf8a54f7047f546fc6aaed7872cc53151a5de78",
+                      "size":  76580
+                  },
+                  {
+                      "path":  "vendor/fonts/Noto Sans Regular/256-511.pbf",
+                      "sha256":  "992557f9e2574cfb9a75e16c7b52832578849772b7c9a6e480d6213fb008fe5d",
+                      "size":  127219
+                  },
+                  {
+                      "path":  "vendor/fonts/Noto Sans Regular/7680-7935.pbf",
+                      "sha256":  "21672116227dc22128cb43a58ae19d4bc5ebb5d7d321600317d2df828dced514",
+                      "size":  130591
+                  },
+                  {
+                      "path":  "vendor/fonts/Noto Sans Regular/8192-8447.pbf",
+                      "sha256":  "f061e5b4e42e5925228534d8822b423a029569263db09f5ce44573600d45295f",
+                      "size":  34070
+                  },
+                  {
+                      "path":  "vendor/sprites/ofm.json",
+                      "sha256":  "73e75e58d8c7bb62cc25d9d150660500552f4d04f6eac5efa4e236076773c356",
+                      "size":  27737
+                  },
+                  {
+                      "path":  "vendor/sprites/ofm.png",
+                      "sha256":  "8996a519d218dc5f98015267709dae272a77bb74ef0ecc5a0992dcf276c1be4c",
+                      "size":  49454
+                  },
+                  {
+                      "path":  "vendor/sprites/ofm@2x.json",
+                      "sha256":  "82a4aaeed2c5ce6e98553915754dbe394ee66fd9a2aacc4318d25cdd74e8730b",
+                      "size":  27822
+                  },
+                  {
+                      "path":  "vendor/sprites/ofm@2x.png",
+                      "sha256":  "3793faf7dc47960636e4b6b1039978fa6925e6c90a7cb49ef23b37e153635c9b",
+                      "size":  118872
+                  }
+              ]
+}

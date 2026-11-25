@@ -1,0 +1,6 @@
+{
+    "build":  2,
+    "name":  "1.1",
+    "shell":  2,
+    "notes":  "Update button, and new terrain settings: OS-style paper map, height colours, steepness, contour spacing, shading strength and 3D height."
+}
