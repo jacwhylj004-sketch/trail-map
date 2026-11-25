@@ -1,6 +1,6 @@
 {
-    "build":  6,
-    "name":  "1.5",
+    "build":  7,
+    "name":  "1.6",
     "shell":  5,
-    "notes":  "Graphs of distance, speed and height with splits for recorded walks. TracBack guides you back along your path."
+    "notes":  "Imported maps draw faster when zoomed out, especially offline."
 }

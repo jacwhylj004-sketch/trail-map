@@ -51,6 +51,34 @@ const Packs = (() => {
     return best ? `rgb(${best[0]})` : "#777";
   }
 
+  const lowest = () => Math.min(...list.map(p => p.minzoom));
+
+  /* When the imported map fills the screen, the ordinary map under it can't be seen, so it is switched off: drawing
+     (and, offline, looking for) two maps at once made zooming out slow. */
+  let covering = null, watching = false;
+  function filled(m) {
+    if (!installed || m.getZoom() < lowest()) return false;
+    const b = m.getBounds(), rects = list.flatMap(p => p.cover || [p.bbox]);
+    for (const x of [0, 0.5, 1]) for (const y of [0, 0.5, 1]) {
+      const lon = b.getWest() + (b.getEast() - b.getWest()) * x, lat = b.getSouth() + (b.getNorth() - b.getSouth()) * y;
+      if (!rects.some(([w, s, e, n]) => lon >= w && lon <= e && lat >= s && lat <= n)) return false;
+    }
+    return true;
+  }
+  function underneath(m, force) {
+    if (!installed) { covering = null; return; }
+    const now = filled(m);
+    if (now === covering && !force) return;
+    covering = now;
+    const tilted = SETTINGS.relief3d !== "off";
+    [...GROUPS.standard, "contour-lines", "contour-labels"].forEach(id => {
+      const off = now || id === "peaks" || id === "hiker-poi" || (id.startsWith("contour") && SETTINGS.contour === "off");
+      m.setLayoutProperty(id, "visibility", off ? "none" : "visible");
+    });
+    // hill shading needs height data: leave it out when there is no internet to get it from
+    if (!tilted) m.setLayoutProperty("hillshade", "visibility", SETTINGS.shading === "off" || (now && !navigator.onLine) ? "none" : "visible");
+  }
+
   function build() {
     const styles = { area: {}, line: {}, point: {} }, sets = { paths: new Set(), boundaries: new Set(), gates: new Set(), contours: new Set() };
     for (const p of [...list].reverse()) { for (const k in styles) Object.assign(styles[k], p.styles[k]); for (const k in sets) (p[k] || []).forEach(v => sets[k].add(v)); }
@@ -60,7 +88,7 @@ const Packs = (() => {
     const is = code => ["==", ["get", "t"], code];
     const among = codes => ["in", ["get", "t"], ["literal", codes]];
     const zoomed = w => ["interpolate", ["linear"], ["zoom"], 10, w * 0.28, 12, w * 0.5, 15, w, 18, w * 1.8];
-    layers.push({ id: "tt-cover", type: "fill", source: "packcover", minzoom: 10, paint: { "fill-color": "#f6f3e9" } });
+    layers.push({ id: "tt-cover", type: "fill", source: "packcover", minzoom: lowest(), paint: { "fill-color": "#f6f3e9" } });
 
     const areas = Object.entries(styles.area).map(([c, s]) => [+c, s]).sort((a, b) => (a[1].order || 0) - (b[1].order || 0));
     for (const [code, s] of areas) {
@@ -115,7 +143,7 @@ const Packs = (() => {
     const gateLayer = symbols("tt-gates", among(gates), 14, { "icon-allow-overlap": true });
     points.push(gateLayer); barriers.push(gateLayer);
     text("tt-point-names", "point", ["all", named, ["!", among(towns)]], { "text-offset": [0, 1], "text-anchor": "top" }, {}, 15);
-    text("tt-towns", "point", ["all", named, among(towns)], { "text-font": ["Noto Sans Bold"], "text-size": ["match", ["get", "t"], 0x400, 15, 12.5] }, {}, 10);
+    text("tt-towns", "point", ["all", named, among(towns)], { "text-font": ["Noto Sans Bold"], "text-size": ["match", ["get", "t"], 0x400, 15, 12.5] }, {}, lowest());
     ids = { all: layers.map(l => l.id), barriers, points };
     return layers;
   }
@@ -140,10 +168,12 @@ const Packs = (() => {
         move(m, true);
       }
     }
-    if (!installed) return;
+    if (!watching) { watching = true; m.on("moveend", () => underneath(m)); }
+    if (!installed) { covering = null; return; }
     const hidden = new Set(SETTINGS.barriers ? [] : ids.barriers);
     if (SETTINGS.contour === "off") ids.all.filter(id => /^tt-(l3[234](-edge)?|contour-names)$/.test(id)).forEach(id => hidden.add(id));
     ids.all.forEach(id => m.setLayoutProperty(id, "visibility", hidden.has(id) ? "none" : "visible"));
+    underneath(m, true);
   }
   /* The imported map covers the ordinary one, so hill shading and walking routes are lifted above it (and put back after). */
   function move(m, up) {

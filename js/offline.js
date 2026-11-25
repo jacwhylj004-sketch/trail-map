@@ -42,6 +42,7 @@ function refreshTemplate() {
     .finally(() => { vtRefreshing = null; }));
 }
 async function netTile(type, z, x, y, signal) {
+  if (!navigator.onLine) throw new Error("Offline"); // answer at once instead of waiting for a request that can't succeed
   if (type === "dem") {
     const r = await fetchTimeout(DEM_URL(z, x, y), { signal });
     if (!r.ok) throw new Error("Elevation server " + r.status);

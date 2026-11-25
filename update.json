@@ -1,8 +1,8 @@
 {
-    "build":  6,
-    "name":  "1.5",
+    "build":  7,
+    "name":  "1.6",
     "shell":  5,
-    "notes":  "Graphs of distance, speed and height with splits for recorded walks. TracBack guides you back along your path.",
+    "notes":  "Imported maps draw faster when zoomed out, especially offline.",
     "files":  [
                   {
                       "path":  "app.css",
@@ -16,8 +16,8 @@
                   },
                   {
                       "path":  "version.json",
-                      "sha256":  "5b314cb3f7f65f7192652e609ac29d3e6041ca34badb48db04784d11b57635a5",
-                      "size":  189
+                      "sha256":  "e9061fd3579c797691b84071e6089faf285f84b2966fe34c46540cdd23aed5f3",
+                      "size":  141
                   },
                   {
                       "path":  "js/back.js",
@@ -46,8 +46,8 @@
                   },
                   {
                       "path":  "js/offline.js",
-                      "sha256":  "52f7b05da597cce69f0ac54124c0f76b14814e05fcedd01f7d174e68841caabf",
-                      "size":  11665
+                      "sha256":  "767a7e32ccd4dd08cef8b88a57f1797e5248852eb878b15ecaef7386fe911f1a",
+                      "size":  11788
                   },
                   {
                       "path":  "js/osmap.js",
@@ -56,8 +56,8 @@
                   },
                   {
                       "path":  "js/packs.js",
-                      "sha256":  "aff091a6dfe0e7beadc4787f0c905c26b4cb3e36f1860d005f725ca7e8b76a11",
-                      "size":  13254
+                      "sha256":  "ee792c211c79f413c28dae9e65877c18a8efc2a5f3f9cf1ca47c8cbed695ab1f",
+                      "size":  14902
                   },
                   {
                       "path":  "js/paths.js",
