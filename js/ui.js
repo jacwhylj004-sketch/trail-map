@@ -97,7 +97,9 @@ function terrainControls() {
     slope: key(SLOPES.map(s => [`rgb(${s[2]})`, s[1]])) + '<p class="muted small">Zoom in to see steepness. It is estimated from height data about 25 m apart, so crags and short steep drops can be missed.</p>',
     satellite: '<p class="muted small">Satellite pictures need internet and are not saved in offline maps.</p>'
   };
-  return seg("base", "Map style", [["map", "Outdoor"], ["os", "OS style"], ["height", "Height"], ["slope", "Steepness"], ["satellite", "Satellite"]]).replace('class="seg"', 'class="seg wrap"') + about[SETTINGS.base] +
+  const styles = [["map", "Outdoor"], ["os", "OS style"], ...(Packs.any() ? [["tt", "Imported"]] : []), ["height", "Height"], ["slope", "Steepness"], ["satellite", "Satellite"]];
+  if (SETTINGS.base === "tt") about.tt = `<p class="muted small">Your imported map: ${esc(Packs.names())}. It works with no internet. Outside its area you see the ordinary map.</p>`;
+  return seg("base", "Map style", styles).replace('class="seg"', 'class="seg wrap"') + about[SETTINGS.base] +
     seg("contour", "Contour lines", [["off", "Off"], ["wide", "Wide"], ["normal", "Normal"], ["close", "Close"]]) +
     (SETTINGS.base === "satellite" ? "" : seg("shading", "Hill shading", [["off", "Off"], ["light", "Light"], ["medium", "Medium"], ["strong", "Strong"]])) +
     seg("relief3d", "3D hills", [["off", "Off"], ["gentle", "Gentle"], ["normal", "Normal"], ["steep", "Steep"]]);
@@ -107,8 +109,9 @@ const SHEETS = {
   layers() {
     const sw = (k, label) => `<label class="switch"><input type="checkbox" data-set="${k}" ${SETTINGS[k] ? "checked" : ""}> <span>${label}</span></label>`;
     return ["Map layers", `${terrainControls()}
-      <div>${sw("routes", "Named walking and hiking routes")}${sw("paths", "Highlight footpaths and tracks")}</div>
-      <div class="legend">${Object.values(Routes.NETWORKS).map(n => `<span style="--c:${n[1]}">${n[0]} route</span>`).join("")}<span style="--c:#b3261e">Footpath</span><span style="--c:#1e7a36">Bridleway</span><span style="--c:#8a5a24">Track</span></div>`];
+      <div>${sw("routes", "Named walking and hiking routes")}${SETTINGS.base === "tt" ? "" : sw("paths", "Highlight footpaths and tracks")}${sw("barriers", "Gates, stiles, walls, fences and hedges")}</div>
+      <p class="muted small">Footpaths show from further out than gates and boundaries. Zoom in for those.</p>
+      <div class="legend">${Object.values(Routes.NETWORKS).map(n => `<span style="--c:${n[1]}">${n[0]} route</span>`).join("")}<span style="--c:#b3261e">Footpath</span><span style="--c:#1e7a36">Bridleway</span><span style="--c:#8a5a24">Track</span><span style="--c:#555555">Wall</span><span style="--c:#8a8436">Fence</span><span style="--c:#1f8a3a">Hedge</span></div>`];
   },
   routes() {
     const list = SETTINGS.routes ? Routes.inView() : [];
@@ -239,6 +242,7 @@ async function renderSettings() {
       ${regions.map(area).join("") || '<p class="muted small">No maps downloaded yet.</p>'}
       <button class="btn primary" data-act="area-new" ${job ? "disabled" : ""}>Download a new area</button>
       ${job ? '<p class="muted small">Keep Trail Map open until the download finishes.</p>' : ""}<p class="muted small">${usage}</p></section>
+    <section class="panel"><h2>Imported maps</h2>${Packs.panel()}</section>
     <section class="panel"><h2>App updates</h2>${Update.panel()}</section>
     <section class="panel"><h2>Terrain</h2>${terrainControls()}</section>
     <section class="panel"><h2>Units</h2>${seg("units", [["km", "Kilometres, metres"], ["mi", "Miles, feet"]])}</section>
@@ -320,7 +324,7 @@ const ACTIONS = {
   "me-share": () => share("I am here", GPS.state.pos.ll),
   "me-save": () => savePlace(GPS.state.pos.ll, "My spot " + new Date().toLocaleDateString("en-GB")),
   terrain: d => {
-    SETTINGS[d.k] = d.v; saveSettings();
+    SETTINGS[d.k] = d.v; saveSettings(); Barriers.schedule();
     if (d.k === "contour" && d.v !== "off") map.getSource("contours").setTiles(contourSource().tiles);
     applyLayers();
     if ($("#page").hidden) { renderSheet(); floating(); } else renderSettings();
@@ -398,6 +402,13 @@ const ACTIONS = {
     const region = { id: uid(), name, bbox, created: Date.now(), bytes: 0, complete: false };
     closeArea(); goTab("settings"); startDownload(region, false);
   },
+  "pack-import": () => Packs.pick(),
+  "pack-show": d => {
+    const p = Packs.get(d.id); if (!p) return;
+    SETTINGS.base = "tt"; saveSettings(); applyLayers(); goTab("map"); GPS.setFollow("off");
+    map.jumpTo({ center: [(p.bbox[0] + p.bbox[2]) / 2, (p.bbox[1] + p.bbox[3]) / 2], zoom: 12 });
+  },
+  "pack-delete": async d => { const p = Packs.get(d.id); if (p && await dialog({ title: "Delete imported map?", text: `${p.name} will be removed from this phone. You can import its file again later.`, yes: "Delete" })) { await Packs.remove(p.id); toast("Deleted " + p.name); } },
   "dl-stop": () => Offline.stop(),
   "dl-update": async d => { const r = (await Offline.list()).find(x => x.id === d.id); if (r) startDownload(r, r.complete); },
   "dl-show": async d => { const r = (await Offline.list()).find(x => x.id === d.id); if (!r) return; goTab("map"); GPS.setFollow("off"); map.fitBounds([[r.bbox[0], r.bbox[1]], [r.bbox[2], r.bbox[3]]], { padding: 30 }); },
@@ -414,7 +425,7 @@ document.addEventListener("click", e => {
 document.addEventListener("change", e => {
   const k = e.target.dataset && e.target.dataset.set; if (!k || !map) return;
   SETTINGS[k] = e.target.checked; saveSettings();
-  if (k === "awake") keepAwake(SETTINGS.awake || !!Offline.job()); else { applyLayers(); Routes.refresh(); }
+  if (k === "awake") keepAwake(SETTINGS.awake || !!Offline.job()); else { applyLayers(); Routes.refresh(); Barriers.schedule(); }
 });
 $("#search").addEventListener("submit", e => { e.preventDefault(); const t = $("#q").value.trim(); if (t && map) { $("#q").blur(); runSearch(t); } });
 $("#q").addEventListener("input", () => { $("#search-x").hidden = !$("#q").value; });
@@ -460,8 +471,8 @@ function wireMap() {
     }
     const saved = at(e.point, ["saved-dot"], 12)[0];
     if (saved) { const p = SAVED.places.find(x => x.id === saved.properties.id); if (p) return showCard({ name: p.name, ll: p.ll, savedId: p.id }); }
-    const poi = at(e.point, ["os-symbols", "os-poi", "os-peaks", "hiker-poi", "peaks", "poi_r1", "poi_r7", "poi_r20", "poi_transit"])[0];
-    if (poi) { const pr = poi.properties, kind = String(pr.subclass || pr.class || "").replace(/_/g, " "); return showCard({ name: pr["name:latin"] || pr.name || kind || "Place", detail: /peaks$/.test(poi.layer.id) ? "Summit" : kind, ll: poi.geometry.type === "Point" ? poi.geometry.coordinates : ll }); }
+    const poi = at(e.point, [...Packs.tapLayers(), "barrier-gates", "os-symbols", "os-poi", "os-peaks", "hiker-poi", "peaks", "poi_r1", "poi_r7", "poi_r20", "poi_transit"])[0];
+    if (poi) { const pr = poi.properties, kind = String(Packs.kind(pr.t) || pr.subclass || pr.class || pr.kind || "").replace(/_/g, " "), named = pr["name:latin"] || pr.name || pr.n; return showCard({ name: named || (kind ? kind[0].toUpperCase() + kind.slice(1) : "Place"), detail: /peaks$/.test(poi.layer.id) ? "Summit" : kind, ll: poi.geometry.type === "Point" ? poi.geometry.coordinates : ll }); }
     const route = SETTINGS.routes && at(e.point, ["routes-hit"], 4)[0];
     if (route) { const r = Routes.get(route.properties.id); if (r) return openRoute(r); }
     if (UI.sheet && UI.sheet !== "search") goTab("map");
@@ -469,18 +480,18 @@ function wireMap() {
   map.on("dragstart", () => { if (GPS.follow() !== "off") GPS.setFollow("off"); });
   map.on("rotate", () => { const b = map.getBearing(); $("#fab-north").hidden = Math.abs(b) < 1; const i = $("#fab-north svg"); if (i) i.style.transform = `rotate(${-b}deg)`; });
   map.on("move", areaSize);
-  map.on("moveend", e => { if (!e.gps || GPS.follow() === "off") Routes.schedule(); else followRoutes(); });
+  map.on("moveend", e => { if (!e.gps || GPS.follow() === "off") { Routes.schedule(); Barriers.schedule(); } else followRoutes(); });
 }
 /* While following you, only look for new routes now and then. */
 let lastFollow = 0;
-function followRoutes() { if (Date.now() - lastFollow > 20000) { lastFollow = Date.now(); Routes.schedule(); } }
+function followRoutes() { if (Date.now() - lastFollow > 20000) { lastFollow = Date.now(); Routes.schedule(); Barriers.schedule(); } }
 
 /* ---- start ---- */
 (async function start() {
   applyTheme(); nav();
   $("#search-go").innerHTML = ICON.search; $("#search-x").innerHTML = ICON.close; $("#sheet-x").innerHTML = ICON.close;
   $("#fab-layers").innerHTML = ICON.layers; $("#fab-north").innerHTML = ICON.north; $("#fab-rec").innerHTML = ICON.record; $("#fab-in").innerHTML = ICON.plus; $("#fab-out").innerHTML = ICON.minus;
-  try { await createMap(); }
+  try { await Packs.load(); await createMap(); }
   catch (e) { map = null; toast("The map couldn't start: " + e.message); return; }
   wireMap(); drawSaved(); renderGPS();
   let sheetStamp = 0;
@@ -495,7 +506,8 @@ function followRoutes() { if (Date.now() - lastFollow > 20000) { lastFollow = Da
   addEventListener("online", () => { renderChip(); Routes.refresh(); map.triggerRepaint(); });
   addEventListener("offline", () => { renderChip(); });
   addEventListener("resize", () => { floating(); areaSize(); });
-  renderChip(); Routes.refresh();
+  Packs.onChange(() => { applyLayers(); if (!$("#page").hidden) renderSettings(); });
+  renderChip(); Routes.refresh(); Barriers.schedule();
   if (NATIVE && NATIVE.appReady) NATIVE.appReady(); // this version works: keep it
   Update.onChange(() => { nav(); if (!$("#page").hidden) renderSettings(); });
   Update.check(false);

@@ -1,8 +1,8 @@
 {
-    "build":  3,
-    "name":  "1.2",
-    "shell":  3,
-    "notes":  "Track recording: record your walk, even with the screen off. Needs the new app file.",
+    "build":  4,
+    "name":  "1.3",
+    "shell":  4,
+    "notes":  "Footpaths show from further out. Gates, stiles, walls, fences and hedges. Import your own map files (needs the new app file).",
     "files":  [
                   {
                       "path":  "app.css",
@@ -11,33 +11,48 @@
                   },
                   {
                       "path":  "index.html",
-                      "sha256":  "77f2ac207a52b492bbc3b0bc787cc19e4dfc8f876e16213e480fc9385a9467a9",
-                      "size":  3403
+                      "sha256":  "39c49204bc0cecc2066ee656ce2c088cef9505a04bf88a628168d1cca857683b",
+                      "size":  3514
                   },
                   {
                       "path":  "version.json",
-                      "sha256":  "bdacdd5b7ce772efc1e081e9c712fe89e9ab04fa5b13e56a341c63e993ef82ed",
-                      "size":  163
+                      "sha256":  "3fab1decd4253ad3085f7b449d895f1619820f9574b64e098f9a8fd2df34a62a",
+                      "size":  204
+                  },
+                  {
+                      "path":  "js/barriers.js",
+                      "sha256":  "d3d9fd385a62e1b39002316a859a0aa1ac1b0fbf6d4b79fe9d94a1f4d989fb42",
+                      "size":  8651
                   },
                   {
                       "path":  "js/core.js",
-                      "sha256":  "9ee955207a564bd4e62817bfe5f8909d21c41c1d321a78bb4a7231d0607e5e52",
-                      "size":  9538
+                      "sha256":  "e69e5e78a728f4b7b573402d3c94622866fd80648d6a5a4c18ae63d9bb3c5cb3",
+                      "size":  9554
                   },
                   {
                       "path":  "js/map.js",
-                      "sha256":  "62a6c3aaec09893e4314072eddeec2202c1c55e7ac921eb310b06cd31e2ba2e8",
-                      "size":  18382
+                      "sha256":  "04d086e7b41a2a4c8c72a0c0ed92827c6e0dd9bf84c024361399731ae8888ae5",
+                      "size":  18979
                   },
                   {
                       "path":  "js/offline.js",
-                      "sha256":  "dde3b0a9e1a80c11bf14f37bdf9748f4e6fa70a0608ef8d28d5f6fde59ab8931",
-                      "size":  11260
+                      "sha256":  "52f7b05da597cce69f0ac54124c0f76b14814e05fcedd01f7d174e68841caabf",
+                      "size":  11665
                   },
                   {
                       "path":  "js/osmap.js",
-                      "sha256":  "a6c1150739e7da30629f97ab4101b0f90b229c8f46d08a448fc9b427778ae828",
-                      "size":  13049
+                      "sha256":  "10d69744c632c323924485253e0b5d8c57c7ef407af14f6f4283e240439741d3",
+                      "size":  13137
+                  },
+                  {
+                      "path":  "js/packs.js",
+                      "sha256":  "29125f9e8ce1f3b603c57b82d08797fbbc9c341cfdc942d1b4a33402d4273dfb",
+                      "size":  13100
+                  },
+                  {
+                      "path":  "js/paths.js",
+                      "sha256":  "1b725a0d469ac5f5cb5aa6b943a60ca858fbc0b9ce809f5f5951a4f15eebfc33",
+                      "size":  5777
                   },
                   {
                       "path":  "js/plan.js",
@@ -51,13 +66,13 @@
                   },
                   {
                       "path":  "js/routes.js",
-                      "sha256":  "c71a2b02a256cf3906d55f0dc8103bab9d43ccf89b7bc6b95411daeba70847b4",
-                      "size":  9273
+                      "sha256":  "8062e788f8057dfdc313d9c7890ccbf1caa4e9b96bae7fc33982f3bd0cb86369",
+                      "size":  9321
                   },
                   {
                       "path":  "js/ui.js",
-                      "sha256":  "4b958de8af53f8e22598374cb2ba76a88203097dea6e1415f432b832e6c5ee73",
-                      "size":  43800
+                      "sha256":  "d8438c238670eccfd45c5b716974c5d975877614b32275a9ddc1913fcd3ceb6b",
+                      "size":  45375
                   },
                   {
                       "path":  "js/update.js",

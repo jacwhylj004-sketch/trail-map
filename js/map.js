@@ -8,7 +8,7 @@ const setData = (id, data) => { const s = map && map.getSource(id); if (s) s.set
 const lineFeature = (coords, props = {}) => ({ type: "Feature", properties: props, geometry: { type: "LineString", coordinates: coords } });
 
 /* Layer ids that belong to each switch in the Layers panel. */
-const GROUPS = { satellite: [], height: [], shade: [], slope: [], contours: [], paths: [], routes: [], os: [], osRoutes: [], standard: [] };
+const GROUPS = { satellite: [], height: [], shade: [], slope: [], contours: [], paths: [], routes: [], os: [], osRoutes: [], standard: [], barriers: [] };
 const SHADING = { light: 0.2, medium: 0.35, strong: 0.7 };
 const RELIEF = { gentle: 1, normal: 1.5, steep: 2.5 };
 /* Colours for the height map: metres above sea level, colour. */
@@ -27,6 +27,8 @@ async function buildStyle() {
     satellite: { type: "raster", tiles: ["https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg"], tileSize: 256, maxzoom: 14, attribution: '<a href="https://s2maps.eu">Sentinel-2 cloudless 2020</a> by EOX (contains modified Copernicus data)' },
     overview: { type: "raster", tiles: ["https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png"], tileSize: 256, maxzoom: 17, attribution: '<a href="https://hiking.waymarkedtrails.org">Waymarked Trails</a>' },
     slope: { type: "raster", tiles: ["tm://slope/{z}/{x}/{y}"], tileSize: 256, maxzoom: DEM_MAX },
+    walk: { type: "vector", tiles: ["tm://walk/{z}/{x}/{y}"], minzoom: 12, maxzoom: VT_MAX },
+    barriers: { type: "geojson", data: EMPTY, attribution: OVERPASS_CREDIT },
     osgrid: { type: "geojson", data: EMPTY },
     routes: { type: "geojson", data: EMPTY, attribution: OVERPASS_CREDIT },
     plan: { type: "geojson", data: EMPTY }, track: { type: "geojson", data: EMPTY }, accuracy: { type: "geojson", data: EMPTY }, saved: { type: "geojson", data: EMPTY }
@@ -54,10 +56,11 @@ async function buildStyle() {
   const walk = ["match", ["get", "subclass"], ["path", "footway", "bridleway", "steps", "pedestrian", "cycleway"], true, false];
   const path = ["all", ["==", ["get", "class"], "path"], walk, ["!=", ["geometry-type"], "Polygon"]];
   const dash = (id, filter, color, pattern, minzoom = 12) => [
-    { id: id + "-casing", type: "line", source: "openmaptiles", "source-layer": "transportation", minzoom, filter, layout: { "line-join": "round" }, paint: { "line-color": "#ffffff", "line-opacity": 0.85, "line-width": ["interpolate", ["linear"], ["zoom"], 12, 2.4, 18, 7] } },
-    { id, type: "line", source: "openmaptiles", "source-layer": "transportation", minzoom, filter, layout: { "line-join": "round" }, paint: { "line-color": color, "line-dasharray": pattern, "line-width": ["interpolate", ["linear"], ["zoom"], 12, 1.3, 18, 4] } }
+    { id: id + "-casing", type: "line", source: "walk", "source-layer": "transportation", minzoom, filter, layout: { "line-join": "round" }, paint: { "line-color": "#ffffff", "line-opacity": 0.85, "line-width": ["interpolate", ["linear"], ["zoom"], 12, 2.4, 18, 7] } },
+    { id, type: "line", source: "walk", "source-layer": "transportation", minzoom, filter, layout: { "line-join": "round" }, paint: { "line-color": color, "line-dasharray": pattern, "line-width": ["interpolate", ["linear"], ["zoom"], 12, 1.3, 18, 4] } }
   ];
   before(l => l.type === "symbol" && !l.id.startsWith("road_one_way") && !l.id.startsWith("contour"), [
+    ...group("barriers", Barriers.layers()),
     ...group("paths", [
       ...dash("walk-track", ["==", ["get", "class"], "track"], "#8a5a24", [4, 1.5]),
       ...dash("walk-path", ["all", path, ["!=", ["get", "subclass"], "bridleway"]], "#b3261e", [2, 1.4]),
@@ -113,9 +116,11 @@ function applyUnits() {
   scale.setUnit(imperial() ? "imperial" : "metric");
 }
 function applyLayers() {
-  const os = SETTINGS.base === "os";
+  if (SETTINGS.base === "tt" && !Packs.any()) SETTINGS.base = "map"; // the imported map was deleted
+  const tt = SETTINGS.base === "tt", os = SETTINGS.base === "os";
   const show = { os, osRoutes: os && SETTINGS.routes, standard: !os, satellite: SETTINGS.base === "satellite", height: SETTINGS.base === "height", slope: SETTINGS.base === "slope",
-    shade: SETTINGS.shading !== "off" && SETTINGS.base !== "satellite", contours: SETTINGS.contour !== "off", paths: SETTINGS.paths && !os, routes: SETTINGS.routes && !os };
+    shade: SETTINGS.shading !== "off" && SETTINGS.base !== "satellite", contours: SETTINGS.contour !== "off", paths: SETTINGS.paths && !os && !tt, routes: SETTINGS.routes && !os,
+    barriers: SETTINGS.barriers && !tt }; // an imported map draws its own paths, gates and boundaries
   map.setPaintProperty("hillshade", "hillshade-exaggeration", (SHADING[SETTINGS.shading] || 0.35) * (os ? 0.4 : 1)); // a paper map is only lightly shaded
   map.setPaintProperty("background", "background-color", os ? "#fffefb" : "#f8f4f0");
   map.setPaintProperty("contour-lines", "line-color", os ? "#e8833a" : "#a0703c");
@@ -125,6 +130,8 @@ function applyLayers() {
   for (const [name, ids] of Object.entries(GROUPS)) ids.forEach(id => map.setLayoutProperty(id, "visibility", show[name] ? "visible" : "none"));
   ["routes-hit", "routes-highlight", "routes-label"].forEach(id => map.setLayoutProperty(id, "visibility", SETTINGS.routes ? "visible" : "none"));
   map.setLayoutProperty("building", "visibility", show.satellite || os ? "none" : "visible"); // after the groups: satellite hides buildings too
+  if (tt) ["peaks", "hiker-poi"].forEach(id => map.setLayoutProperty(id, "visibility", "none"));
+  Packs.apply(map);
   const relief = RELIEF[SETTINGS.relief3d];
   map.setTerrain(relief ? { source: "hills3d", exaggeration: relief } : null);
   if (!relief && map.getPitch() > 0) map.easeTo({ pitch: 0 });
@@ -142,6 +149,7 @@ async function createMap() {
   map.on("error", e => console.debug("map:", e && e.error && e.error.message)); // missing tiles when offline are expected
   await new Promise(res => map.once("style.load", res));
   OsMap.addImages(map);
+  Barriers.addImages(map);
   map.on("moveend", () => OsMap.updateGrid(map));
   const fold = () => { const a = $(".maplibregl-ctrl-attrib"); if (a) a.classList.remove("maplibregl-compact-show"); }; fold(); map.once("idle", fold); setTimeout(fold, 4000);
   applyLayers();

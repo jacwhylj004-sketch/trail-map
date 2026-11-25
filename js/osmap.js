@@ -53,8 +53,8 @@ const OsMap = (() => {
     ];
     /* every outline first, so that roads join cleanly */
     const ordered = [...roads.map(r => r[0]), ...roads.map(r => r[1])];
-    const path = (id, filter, color, dash, width, minzoom = 12) => layer("os-" + id, "line", "transportation",
-      { minzoom, filter: ["all", line, filter], paint: { "line-color": color, "line-dasharray": dash, "line-width": zoomed(12, width, 18, width * 2.6) } });
+    const path = (id, filter, color, dash, width, minzoom = 12) => Object.assign(layer("os-" + id, "line", "transportation",
+      { minzoom, filter: ["all", line, filter], paint: { "line-color": color, "line-dasharray": dash, "line-width": zoomed(12, width, 18, width * 2.6) } }), { source: "walk" }); // "walk" has every path from zoom 12 (see paths.js)
     return [
       layer("os-building", "fill", "building", { minzoom: 13, paint: { "fill-color": "#f6c79b", "fill-outline-color": "#222222" } }),
       path("track", classIs("track"), "#222222", [5, 2], 1.2),

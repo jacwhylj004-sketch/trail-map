@@ -9,7 +9,7 @@ const NATIVE = window.TrailNative || null;
 const loadJSON = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
 const saveJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } };
 
-const SETTINGS = Object.assign({ units: "km", theme: "auto", awake: false, base: "map", routes: true, paths: true, shading: "medium", contour: "normal", relief3d: "off" }, loadJSON("tm-settings", {}));
+const SETTINGS = Object.assign({ units: "km", theme: "auto", awake: false, base: "map", routes: true, paths: true, barriers: true, shading: "medium", contour: "normal", relief3d: "off" }, loadJSON("tm-settings", {}));
 /* Carry over the on/off terrain switches from the first version. */
 if (SETTINGS.shade === false) SETTINGS.shading = "off";
 if (SETTINGS.contours === false) SETTINGS.contour = "off";

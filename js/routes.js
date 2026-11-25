@@ -154,7 +154,7 @@ const Routes = (() => {
     /* Search the names of every route saved on the phone. */
     async search(text) {
       const t = text.toLowerCase(), found = new Map();
-      for (const v of await DB.all("cells").catch(() => [])) for (const r of v.routes)
+      for (const v of await DB.all("cells").catch(() => [])) for (const r of v.routes || []) // (cells also hold gates and boundaries)
         if (r.name.toLowerCase().includes(t) || r.ref.toLowerCase() === t) { if (!found.has(r.id)) found.set(r.id, Object.assign({}, r, { lines: [] })); found.get(r.id).lines.push(...r.lines); }
       return [...found.values()].slice(0, 12);
     },

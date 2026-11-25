@@ -73,6 +73,8 @@ demSource.setupMaplibre(maplibregl);
 maplibregl.addProtocol("tm", async (req, ac) => {
   const parts = req.url.slice(5).split("/");
   if (parts[0] === "vt") return { data: await getTile("vt", +parts[1], +parts[2], +parts[3], ac.signal) };
+  if (parts[0] === "walk") return { data: await walkTile(+parts[1], +parts[2], +parts[3], ac.signal) };
+  if (parts[0] === "pack") return { data: await Packs.tile(+parts[1], +parts[2], +parts[3], ac.signal) };
   if (parts[0] === "slope") return { data: await slopeTile(+parts[1], +parts[2], +parts[3]) };
   const font = decodeURIComponent(parts[1]).split(",")[0], range = parts[2]; // label fonts: bundled first, then online
   for (const url of [`vendor/fonts/${encodeURIComponent(font)}/${range}.pbf`, `https://tiles.openfreemap.org/fonts/${encodeURIComponent(font)}/${range}.pbf`]) {
@@ -170,6 +172,8 @@ const Offline = (() => {
       if (failed) throw new Error(failed + " map pieces failed");
       job.stage = "Walking routes"; changed();
       await Routes.saveArea(region.bbox, refresh, abort.signal);
+      job.stage = "Gates and boundaries"; changed();
+      await Barriers.saveArea(region.bbox, refresh, abort.signal);
       region.complete = true; region.updated = Date.now();
     } catch (e) {
       region.error = abort.signal.aborted ? "Stopped" : e.name === "AbortError" ? "The server took too long" : e.message || "Download failed";
@@ -190,6 +194,7 @@ const Offline = (() => {
     const mine = all.find(r => r.id === id);
     for (let i = 0; i < tiles.length; i += 1000) await DB.delMany("tiles", tiles.slice(i, i + 1000));
     if (mine) await Routes.dropArea(mine.bbox, others.map(r => r.bbox));
+    if (mine) await Barriers.dropArea(mine.bbox, others.map(r => r.bbox));
     await DB.del("regions", id); demImages.clear(); changed();
   }
 
