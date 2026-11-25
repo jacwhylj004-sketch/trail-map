@@ -1,6 +1,6 @@
 {
-    "build":  8,
-    "name":  "1.7",
+    "build":  9,
+    "name":  "1.8",
     "shell":  5,
-    "notes":  "Tells you to zoom in when an imported map has nothing to show that far out. Newest map files show at every distance."
+    "notes":  "Fewer, clearer town names on zoomed-out imported maps."
 }

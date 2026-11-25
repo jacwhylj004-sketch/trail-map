@@ -1,8 +1,8 @@
 {
-    "build":  8,
-    "name":  "1.7",
+    "build":  9,
+    "name":  "1.8",
     "shell":  5,
-    "notes":  "Tells you to zoom in when an imported map has nothing to show that far out. Newest map files show at every distance.",
+    "notes":  "Fewer, clearer town names on zoomed-out imported maps.",
     "files":  [
                   {
                       "path":  "app.css",
@@ -16,8 +16,8 @@
                   },
                   {
                       "path":  "version.json",
-                      "sha256":  "db6571a20fbe793559ecb648112aef4897a38b80beaf1e16de7734f15c60ebaa",
-                      "size":  195
+                      "sha256":  "44de70316d2653cda0f38c936a71ad8e77d2f0520ffd60905ec5b96b7a012c93",
+                      "size":  133
                   },
                   {
                       "path":  "js/back.js",
@@ -56,8 +56,8 @@
                   },
                   {
                       "path":  "js/packs.js",
-                      "sha256":  "55bd60335705a76a1a616dff53bf5344fc2b63a76f647471144cc2a889291048",
-                      "size":  15144
+                      "sha256":  "b78697cf45c6933bfbe2ad9153e471623f0bc519a6bb47c4aab44b46d4b53bc6",
+                      "size":  15308
                   },
                   {
                       "path":  "js/paths.js",

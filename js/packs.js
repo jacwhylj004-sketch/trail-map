@@ -143,7 +143,8 @@ const Packs = (() => {
     const gateLayer = symbols("tt-gates", among(gates), 14, { "icon-allow-overlap": true });
     points.push(gateLayer); barriers.push(gateLayer);
     text("tt-point-names", "point", ["all", named, ["!", among(towns)]], { "text-offset": [0, 1], "text-anchor": "top" }, {}, 15);
-    text("tt-towns", "point", ["all", named, among(towns)], { "text-font": ["Noto Sans Bold"], "text-size": ["match", ["get", "t"], 0x400, 15, 12.5] }, {}, lowest());
+    text("tt-towns", "point", ["all", named, among(towns)], { "text-font": ["Noto Sans Bold"], "text-size": ["interpolate", ["linear"], ["zoom"], 8, 12, 12, ["match", ["get", "t"], 0x400, 15, 12.5]],
+      "text-padding": ["interpolate", ["linear"], ["zoom"], 8, 34, 10, 22, 12, 2] }, {}, lowest()); // well spaced when zoomed out
     ids = { all: layers.map(l => l.id), barriers, points };
     return layers;
   }
