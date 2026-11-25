@@ -53,6 +53,7 @@ const Rec = (() => {
 
   function command(name) {
     const b = bridge(); if (!b) return;
+    if (b.trackMode) b.trackMode(SETTINGS.gps);
     const answer = b[name]();
     if (answer === "permission") toast("Allow precise location first, then try again.");
     else if (answer === "off") toast("Switch on Location first, then try again.");
@@ -108,6 +109,8 @@ const Rec = (() => {
     status: () => status,
     saving: () => saving,
     active: () => status !== "idle",
+    hasModes: () => !!(bridge() && bridge().trackMode),
+    setMode(mode) { const b = bridge(); if (b && b.trackMode) b.trackMode(mode); },
     start: () => command("trackStart"),
     pause: () => command("trackPause"),
     resume: () => command("trackResume"),

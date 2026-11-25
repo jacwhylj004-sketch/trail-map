@@ -105,6 +105,16 @@ function terrainControls() {
     seg("relief3d", "3D hills", [["off", "Off"], ["gentle", "Gentle"], ["normal", "Normal"], ["steep", "Steep"]]);
 }
 
+/* How often a recording asks for your position: shown when recording and in Settings. */
+const GPS_MODES = [["accurate", "Accurate", "A position every 2 seconds. The best line, and the most battery."],
+  ["balanced", "Balanced", "A position every 5 seconds. Cuts corners slightly to save some battery."],
+  ["long", "Long walk", "A position every 15 seconds. A rougher line and distance, to save more battery."]];
+function gpsControls() {
+  if (!Rec.hasModes()) return '<p class="muted small">GPS modes need the newest Trail Map app file. Ask Claude for it.</p>';
+  const chosen = GPS_MODES.find(m => m[0] === SETTINGS.gps) || GPS_MODES[0];
+  return `<h3>GPS while recording</h3><div class="seg" role="group" aria-label="GPS while recording">${GPS_MODES.map(([v, l]) => `<button data-act="gps-mode" data-v="${v}" aria-pressed="${chosen[0] === v}">${l}</button>`).join("")}</div><p class="muted small">${chosen[2]}</p>`;
+}
+
 const SHEETS = {
   layers() {
     const sw = (k, label) => `<label class="switch"><input type="checkbox" data-set="${k}" ${SETTINGS[k] ? "checked" : ""}> <span>${label}</span></label>`;
@@ -163,14 +173,14 @@ const SHEETS = {
     const s = Rec.status();
     if (!Rec.supported()) return ["Record a walk", '<p>Recording needs the newest Trail Map app file. Ask Claude for it.</p>'];
     const tip = '<p class="muted small">Recording carries on with the screen off. On a Samsung phone, also set Settings &gt; Apps &gt; Trail Map &gt; Battery to Unrestricted so the phone doesn’t stop it.</p>';
-    if (s === "idle") return ["Record a walk", `<p>Your path is drawn on the map as you go, with distance, time and climb.</p><button class="btn primary" data-act="rec-start">${ICON.record}Start recording</button>${tip}`];
+    if (s === "idle") return ["Record a walk", `<p>Your path is drawn on the map as you go, with distance, time and climb.</p><button class="btn primary" data-act="rec-start">${ICON.record}Start recording</button>${gpsControls()}${tip}`];
     const note = { paused: "Paused. Nothing is being recorded.", interrupted: "Recording stopped unexpectedly. What was recorded is safe: continue, or finish and save it.", stopped: "Finished. Save this walk, or carry on." }[s] || (Rec.figures().points ? "" : "Waiting for a good GPS signal…");
     const buttons = Rec.saving() ? '<p class="muted">Saving…</p>'
       : s === "recording" ? '<button class="btn" data-act="rec-pause">Pause</button><button class="btn primary" data-act="rec-finish">Finish</button>'
       : s === "stopped" ? '<button class="btn primary" data-act="rec-save">Save walk</button><button class="btn" data-act="rec-resume">Carry on</button><button class="btn danger" data-act="rec-discard">Discard</button>'
       : '<button class="btn primary" data-act="rec-resume">Continue</button><button class="btn" data-act="rec-finish">Finish</button>';
     const title = { recording: "Recording", paused: "Recording paused", interrupted: "Recording interrupted", stopped: "Your walk" }[s];
-    return [title, `${note ? `<p class="${s === "interrupted" ? "warn" : "muted"} small">${note}</p>` : ""}<div id="rec-stats" class="stats">${recStats()}</div><div class="row">${buttons}</div>${s === "recording" ? tip : ""}`];
+    return [title, `${note ? `<p class="${s === "interrupted" ? "warn" : "muted"} small">${note}</p>` : ""}<div id="rec-stats" class="stats">${recStats()}</div><div class="row">${buttons}</div>${s === "stopped" ? "" : gpsControls()}${s === "recording" ? tip : ""}`];
   },
   trackview(t) {
     return [t.name, `<p class="muted small">Recorded ${esc(new Date(t.date).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }))}</p>
@@ -245,6 +255,8 @@ async function renderSettings() {
     <section class="panel"><h2>Imported maps</h2>${Packs.panel()}</section>
     <section class="panel"><h2>App updates</h2>${Update.panel()}</section>
     <section class="panel"><h2>Terrain</h2>${terrainControls()}</section>
+    <section class="panel"><h2>Walk recording and battery</h2>${gpsControls()}
+      <p class="small">To save the most battery, keep the screen off between map checks. On a Samsung phone, set Settings &gt; Apps &gt; Trail Map &gt; Battery to Unrestricted so recording isn’t stopped.</p></section>
     <section class="panel"><h2>Units</h2>${seg("units", [["km", "Kilometres, metres"], ["mi", "Miles, feet"]])}</section>
     <section class="panel"><h2>Appearance</h2>${seg("theme", [["auto", "Automatic"], ["light", "Light"], ["dark", "Dark"]])}
       <label class="switch"><input type="checkbox" data-set="awake" ${SETTINGS.awake ? "checked" : ""}> <span>Keep the screen on while the app is open (uses more battery)</span></label></section>
@@ -332,6 +344,7 @@ const ACTIONS = {
   "update-check": () => Update.check(true),
   record: () => { UI.tab = "map"; nav(); openSheet("record"); },
   "rec-start": () => { Rec.start(); GPS.setFollow("follow"); },
+  "gps-mode": d => { SETTINGS.gps = d.v; saveSettings(); Rec.setMode(d.v); if ($("#page").hidden) { renderSheet(); floating(); } else renderSettings(); },
   "rec-pause": () => Rec.pause(),
   "rec-resume": () => Rec.resume(),
   "rec-finish": () => Rec.finish(),
@@ -406,7 +419,11 @@ const ACTIONS = {
   "pack-show": d => {
     const p = Packs.get(d.id); if (!p) return;
     SETTINGS.base = "tt"; saveSettings(); applyLayers(); goTab("map"); GPS.setFollow("off");
-    map.jumpTo({ center: [(p.bbox[0] + p.bbox[2]) / 2, (p.bbox[1] + p.bbox[3]) / 2], zoom: 12 });
+    // go to where you are, or stay put, if the map covers it; otherwise to its middle
+    const inside = ll => !!ll && ll[0] > p.bbox[0] && ll[0] < p.bbox[2] && ll[1] > p.bbox[1] && ll[1] < p.bbox[3];
+    const here = GPS.state.pos && GPS.state.pos.ll, view = map.getCenter().toArray();
+    const center = inside(here) ? here : inside(view) ? view : [(p.bbox[0] + p.bbox[2]) / 2, (p.bbox[1] + p.bbox[3]) / 2];
+    map.jumpTo({ center, zoom: inside(here) || inside(view) ? Math.max(12, map.getZoom()) : 12 });
   },
   "pack-delete": async d => { const p = Packs.get(d.id); if (p && await dialog({ title: "Delete imported map?", text: `${p.name} will be removed from this phone. You can import its file again later.`, yes: "Delete" })) { await Packs.remove(p.id); toast("Deleted " + p.name); } },
   "dl-stop": () => Offline.stop(),
@@ -513,7 +530,7 @@ function followRoutes() { if (Date.now() - lastFollow > 20000) { lastFollow = Da
   Update.check(false);
   let shown = Rec.status();
   Rec.onChange(() => {
-    const now = Rec.status() + Rec.saving();
+    const now = Rec.status() + Rec.saving() + !!Rec.figures().points; // redraw the panel when the first position arrives
     renderGPS();
     if (UI.sheet === "record") { const stats = $("#rec-stats"); if (now === shown && stats && Rec.figures().points) stats.innerHTML = recStats(); else { renderSheet(); floating(); } }
     shown = now;

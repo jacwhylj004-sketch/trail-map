@@ -1,6 +1,6 @@
 {
-    "build":  4,
-    "name":  "1.3",
-    "shell":  4,
-    "notes":  "Footpaths show from further out. Gates, stiles, walls, fences and hedges. Import your own map files (needs the new app file)."
+    "build":  5,
+    "name":  "1.4",
+    "shell":  5,
+    "notes":  "Choose a GPS mode for recording: Accurate, Balanced or Long walk. Better handling of very large imported maps."
 }

@@ -133,7 +133,7 @@ const Packs = (() => {
       installed = want || null;
       if (want) {
         m.addSource("pack", { type: "vector", tiles: ["tm://pack/{z}/{x}/{y}"], minzoom: Math.min(...list.map(p => p.minzoom)), maxzoom: Math.max(...list.map(p => p.maxzoom)), attribution: esc([...new Set(list.map(p => p.source || "Imported map"))].join(", ")) });
-        m.addSource("packcover", { type: "geojson", data: { type: "FeatureCollection", features: list.map(p => { const [w, s, e, n] = p.bbox; return { type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [[[w, s], [e, s], [e, n], [w, n], [w, s]]] } }; }) } });
+        m.addSource("packcover", { type: "geojson", data: { type: "FeatureCollection", features: list.flatMap(p => p.cover || [p.bbox]).map(([w, s, e, n]) => { return { type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [[[w, s], [e, s], [e, n], [w, n], [w, s]]] } }; }) } });
         const layers = build();
         Object.entries(images).forEach(([id, make]) => { if (!m.hasImage(id)) m.addImage(id, ...make()); });
         layers.forEach(l => m.addLayer(l, "routes-hit"));
@@ -161,6 +161,7 @@ const Packs = (() => {
 
   /* ---- importing and deleting ---- */
   window.onPack = async msg => {
+    keepAwake(msg.bytes !== undefined || SETTINGS.awake); // a large file takes a while: don't let the phone sleep
     if (msg.bytes !== undefined) state = { busy: true, bytes: msg.bytes, error: "" };
     else if (msg.cancelled) state = { busy: false, bytes: 0, error: "" };
     else if (msg.error) { state = { busy: false, bytes: 0, error: msg.error }; toast(msg.error); }
@@ -173,7 +174,7 @@ const Packs = (() => {
     const items = list.map(p => `<div class="item" style="flex-direction:column;align-items:stretch"><div><strong>${esc(p.name)}</strong><small>${esc(fmtBytes(p.bytes) + " · made " + new Date(p.created).toLocaleDateString("en-GB"))}</small></div>
       <div class="row end"><button class="btn" data-act="pack-show" data-id="${esc(p.id)}">View</button><button class="btn danger" data-act="pack-delete" data-id="${esc(p.id)}">Delete</button></div></div>`).join("");
     return `<p class="small">Add a map file (.tmap) made on your PC. Copy it to the phone first. It works with no internet.</p>${items || '<p class="muted small">No maps imported yet.</p>'}
-      ${state.busy ? `<p class="muted small">Importing… ${esc(fmtBytes(state.bytes))} copied.</p>` : ""}${state.error ? `<p class="warn small">${esc(state.error)}</p>` : ""}
+      ${state.busy ? `<p class="muted small">Importing… ${esc(fmtBytes(state.bytes))} copied. Keep Trail Map open.</p>` : ""}${state.error ? `<p class="warn small">${esc(state.error)}</p>` : ""}
       <button class="btn primary" data-act="pack-import" ${state.busy ? "disabled" : ""}>Import a map file</button>`;
   }
 
