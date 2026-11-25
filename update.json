@@ -1,23 +1,28 @@
 {
-    "build":  5,
-    "name":  "1.4",
+    "build":  6,
+    "name":  "1.5",
     "shell":  5,
-    "notes":  "Choose a GPS mode for recording: Accurate, Balanced or Long walk. Better handling of very large imported maps.",
+    "notes":  "Graphs of distance, speed and height with splits for recorded walks. TracBack guides you back along your path.",
     "files":  [
                   {
                       "path":  "app.css",
-                      "sha256":  "dfd5767d8dd5ee0f7c757b15588834aceaec46cde35c18c32c7b5c9f9ecdc907",
-                      "size":  10797
+                      "sha256":  "20c6499edff7d975c3f4bf62271469b5d8e64a885857b7456e6beaa0ba530e1a",
+                      "size":  13266
                   },
                   {
                       "path":  "index.html",
-                      "sha256":  "39c49204bc0cecc2066ee656ce2c088cef9505a04bf88a628168d1cca857683b",
-                      "size":  3514
+                      "sha256":  "1950701b668648dcbeda2127498085c8be770478edbae08411265a5c4e9ae71a",
+                      "size":  3895
                   },
                   {
                       "path":  "version.json",
-                      "sha256":  "f052e8be1379aafebf9bd99ddcc9e408d665ad7df24a74f926b13671805acdd8",
+                      "sha256":  "5b314cb3f7f65f7192652e609ac29d3e6041ca34badb48db04784d11b57635a5",
                       "size":  189
+                  },
+                  {
+                      "path":  "js/back.js",
+                      "sha256":  "dd1a5b737aea435c3b8dc19dc990964953b40bb75caa2f23514efa83a29abb2e",
+                      "size":  5590
                   },
                   {
                       "path":  "js/barriers.js",
@@ -30,9 +35,14 @@
                       "size":  9571
                   },
                   {
+                      "path":  "js/graphs.js",
+                      "sha256":  "91884ea8b185a39a84ed88a64e586bd225d394bdc60fcce8876d36dbfa7892d4",
+                      "size":  8656
+                  },
+                  {
                       "path":  "js/map.js",
-                      "sha256":  "04d086e7b41a2a4c8c72a0c0ed92827c6e0dd9bf84c024361399731ae8888ae5",
-                      "size":  18979
+                      "sha256":  "6aeea3d8fe04dd31a345574f4d340e78200ddbfe67c6f767c23df3956e8b1b08",
+                      "size":  19670
                   },
                   {
                       "path":  "js/offline.js",
@@ -61,8 +71,8 @@
                   },
                   {
                       "path":  "js/record.js",
-                      "sha256":  "25e69ef603e0e68f519b304c896720f55bca8e4bebde567c84a368417ac0a3cb",
-                      "size":  6261
+                      "sha256":  "0586f27a0a3798f0579955e9d112deb315692f1bd9ba0becf1ed653a055eb2b4",
+                      "size":  6411
                   },
                   {
                       "path":  "js/routes.js",
@@ -71,8 +81,8 @@
                   },
                   {
                       "path":  "js/ui.js",
-                      "sha256":  "105d1b55333b9ecd996e4a4e4de86ca7fffbf3383b869264459326555882851f",
-                      "size":  47297
+                      "sha256":  "2b9a11f445e5fd9ec7e1519268ec334d7b84e301ece47e61e4af1581351343b4",
+                      "size":  48580
                   },
                   {
                       "path":  "js/update.js",

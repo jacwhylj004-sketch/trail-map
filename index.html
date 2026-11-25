@@ -18,6 +18,11 @@
   <button type="submit" class="icon-btn" aria-label="Search" id="search-go"></button>
 </form>
 <div id="chip" hidden></div>
+<div id="back" role="status" hidden>
+  <svg id="back-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 20l8-4.500 8 4.500z" fill="currentColor"/></svg>
+  <div class="grow"><b id="back-title"></b><span id="back-detail"></span></div>
+  <button class="btn" data-act="back-stop">Stop</button>
+</div>
 
 <div id="fabs">
   <button class="fab small" data-act="layers" aria-label="Map layers" id="fab-layers"></button>
@@ -68,6 +73,8 @@
 <script src="js/plan.js"></script>
 <script src="js/update.js"></script>
 <script src="js/record.js"></script>
+<script src="js/graphs.js"></script>
+<script src="js/back.js"></script>
 <script src="js/ui.js"></script>
 </body>
 </html>

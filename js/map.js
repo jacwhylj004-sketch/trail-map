@@ -31,7 +31,7 @@ async function buildStyle() {
     barriers: { type: "geojson", data: EMPTY, attribution: OVERPASS_CREDIT },
     osgrid: { type: "geojson", data: EMPTY },
     routes: { type: "geojson", data: EMPTY, attribution: OVERPASS_CREDIT },
-    plan: { type: "geojson", data: EMPTY }, track: { type: "geojson", data: EMPTY }, accuracy: { type: "geojson", data: EMPTY }, saved: { type: "geojson", data: EMPTY }
+    plan: { type: "geojson", data: EMPTY }, track: { type: "geojson", data: EMPTY }, back: { type: "geojson", data: EMPTY }, accuracy: { type: "geojson", data: EMPTY }, saved: { type: "geojson", data: EMPTY }
   });
 
   const layers = style.layers.filter(l => l.id !== "natural_earth" && l.id !== "building-3d");
@@ -86,6 +86,9 @@ async function buildStyle() {
     { id: "plan-line", type: "line", source: "plan", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#0b57d0", "line-width": 5 } },
     { id: "track-casing", type: "line", source: "track", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#ffffff", "line-width": 8 } },
     { id: "track-line", type: "line", source: "track", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#ff5a00", "line-width": 4.5 } },
+    { id: "back-casing", type: "line", source: "back", filter: ["==", ["geometry-type"], "LineString"], layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#ffffff", "line-width": 9 } },
+    { id: "back-line", type: "line", source: "back", filter: ["==", ["geometry-type"], "LineString"], layout: { "line-join": "round" }, paint: { "line-color": "#8e24aa", "line-width": 5, "line-dasharray": [2, 0.8] } },
+    { id: "back-end", type: "circle", source: "back", filter: ["==", ["geometry-type"], "Point"], paint: { "circle-radius": 9, "circle-color": "#8e24aa", "circle-stroke-color": "#ffffff", "circle-stroke-width": 4 } },
     { id: "saved-dot", type: "circle", source: "saved", paint: { "circle-radius": 7, "circle-color": "#f9ab00", "circle-stroke-color": "#fff", "circle-stroke-width": 2 } },
     { id: "saved-label", type: "symbol", source: "saved", minzoom: 10, layout: { "text-field": ["get", "name"], "text-font": bold, "text-size": 12, "text-anchor": "top", "text-offset": [0, 0.8], "text-optional": true }, paint: text("#6b4a00") }
   );

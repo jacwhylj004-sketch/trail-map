@@ -94,7 +94,8 @@ const Rec = (() => {
       // heights from the map's height data are steadier than GPS; don't wait long for them with a weak signal
       const profile = await Promise.race([profileOf(parts.flat()).catch(() => null), new Promise(r => setTimeout(() => r(null), 12000))]);
       if (profile) profile.heights = profile.heights.map(h => Math.round(h));
-      const track = { id: uid(), name: name.slice(0, 80), date: started, lines: parts, distance: f.distance, elapsed: f.elapsed, moving: f.moving, up: profile ? profile.up : f.climb, profile };
+      const series = Graphs.series(segments, started, profile && profile.heights);
+      const track = { series, id: uid(), name: name.slice(0, 80), date: started, lines: parts, distance: f.distance, elapsed: f.elapsed, moving: f.moving, up: profile ? profile.up : f.climb, profile };
       SAVED.tracks.unshift(track);
       if (!persistSaved()) { SAVED.tracks.shift(); return null; } // keep the recording until it is safely saved
       bridge().trackClear();
@@ -104,7 +105,8 @@ const Rec = (() => {
 
   document.addEventListener("visibilitychange", poll);
   return {
-    poll, save, figures,
+    poll, save, figures, lines,
+    series: () => Graphs.series(segments, started),
     supported: () => !!bridge(),
     status: () => status,
     saving: () => saving,

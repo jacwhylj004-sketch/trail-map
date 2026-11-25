@@ -16,6 +16,7 @@ const ICON = {
   star: svg('<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>'),
   gear: svg('<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z"/>')
 };
+ICON.back = svg('<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>');
 ICON.record = svg('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5" fill="#e5342b" stroke="none"/>');
 const PIN = '<svg viewBox="0 0 30 38" aria-hidden="true"><path d="M15 1C7 1 1.5 7 1.5 14.2 1.5 24 15 37 15 37s13.500-13 13.500-22.8C28.500 7 23 1 15 1z" fill="currentColor" stroke="#fff" stroke-width="2"/><circle cx="15" cy="14" r="5" fill="#fff"/></svg>';
 
@@ -56,6 +57,7 @@ function openSheet(name, data) {
 function closeSheet() {
   if (UI.sheet === "card") removePin();
   if (UI.sheet === "route") Routes.select(null);
+  Graphs.clear();
   UI.sheet = null; UI.data = null; $("#sheet").hidden = true; $("#search-x").hidden = !$("#q").value; floating();
 }
 function goTab(tab) {
@@ -80,7 +82,8 @@ const stat = (label, value) => `<div class="stat"><b>${esc(value)}</b><span>${la
 function renderSheet() {
   if (!UI.sheet) return;
   const body = $("#sheet-body"), title = t => { $("#sheet-title").textContent = t; };
-  $("#sheet").classList.toggle("tall", ["search", "saved", "route", "trackview"].includes(UI.sheet));
+  $("#sheet").classList.toggle("tall", ["search", "saved", "route"].includes(UI.sheet));
+  Graphs.clear(); // the marker belongs to the graphs being redrawn
   const view = SHEETS[UI.sheet];
   const [t, html] = view(UI.data);
   title(t); body.innerHTML = html;
@@ -180,13 +183,15 @@ const SHEETS = {
       : s === "stopped" ? '<button class="btn primary" data-act="rec-save">Save walk</button><button class="btn" data-act="rec-resume">Carry on</button><button class="btn danger" data-act="rec-discard">Discard</button>'
       : '<button class="btn primary" data-act="rec-resume">Continue</button><button class="btn" data-act="rec-finish">Finish</button>';
     const title = { recording: "Recording", paused: "Recording paused", interrupted: "Recording interrupted", stopped: "Your walk" }[s];
-    return [title, `${note ? `<p class="${s === "interrupted" ? "warn" : "muted"} small">${note}</p>` : ""}<div id="rec-stats" class="stats">${recStats()}</div><div class="row">${buttons}</div>${s === "stopped" ? "" : gpsControls()}${s === "recording" ? tip : ""}`];
+    const back = Rec.figures().points > 1 && !Rec.saving() ? `<button class="btn" data-act="back-start">${ICON.back}TracBack to start</button>` : "";
+    return [title, `${note ? `<p class="${s === "interrupted" ? "warn" : "muted"} small">${note}</p>` : ""}<div id="rec-stats" class="stats">${recStats()}</div><div class="row">${buttons}${back}</div>${s === "stopped" ? Graphs.html(Rec.series()) : ""}${s === "stopped" ? "" : gpsControls()}${s === "recording" ? tip : ""}`];
   },
   trackview(t) {
     return [t.name, `<p class="muted small">Recorded ${esc(new Date(t.date).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }))}</p>
       <div class="stats">${stat("Distance", fmtDist(t.distance))}${stat("Time", fmtTime(t.elapsed))}${stat("Moving", fmtTime(t.moving))}${stat("Climb", fmtHeight(t.up))}${stat("Moving speed", t.moving ? fmtSpeed(t.distance / t.moving) : "–")}</div>
-      ${t.profile ? profileSVG(t.profile) : ""}
-      <div class="row"><button class="btn primary" data-act="track-fit">Show on map</button><button class="btn" data-act="track-rename">Rename</button><button class="btn" data-act="track-hide">Remove from map</button><button class="btn danger" data-act="track-delete">Delete</button></div>`];
+      <div class="row"><button class="btn primary" data-act="track-back">${ICON.back}TracBack to start</button><button class="btn" data-act="track-fit">Show on map</button></div>
+      ${t.series ? Graphs.html(t.series) : `${t.profile ? profileSVG(t.profile) : ""}<p class="muted small">Graphs and splits are kept for walks saved from now on.</p>`}
+      <div class="row"><button class="btn" data-act="track-rename">Rename</button><button class="btn" data-act="track-hide">Remove from map</button><button class="btn danger" data-act="track-delete">Delete</button></div>`];
   },
   saved() {
     const pos = GPS.state.pos;
@@ -319,9 +324,12 @@ async function savePlace(ll, suggested) {
   const name = await dialog({ title: "Save place", input: suggested, yes: "Save" }); if (!name) return null;
   const p = { id: uid(), name, ll }; SAVED.places.unshift(p); persistSaved(); toast("Saved"); return p;
 }
-const fit = coords => { const b = boundsOf(coords); GPS.setFollow("off"); map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: { top: 90, left: 40, right: 70, bottom: $("#sheet").hidden ? 60 : $("#sheet").offsetHeight + 30 }, maxZoom: 15 }); };
+const fit = coords => { const b = boundsOf(coords); GPS.setFollow("off"); map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: { top: 90, left: 40, right: 70, bottom: $("#sheet").hidden ? 60 : Math.min($("#sheet").offsetHeight + 30, $("#map").offsetHeight - 200) }, maxZoom: 15 }); };
 
 function openRoute(r) { Routes.show(r); openSheet("route", r); Routes.select(r.id); }
+
+/* Close the panels and follow your position while retracing a walk. */
+function followBack() { setData("plan", EMPTY); goTab("map"); GPS.setFollow("follow"); Back.update(); if (!GPS.state.pos) toast(GPS.state.error || "Finding your position…"); }
 
 /* ---- buttons ---- */
 const ACTIONS = {
@@ -345,6 +353,9 @@ const ACTIONS = {
   record: () => { UI.tab = "map"; nav(); openSheet("record"); },
   "rec-start": () => { Rec.start(); GPS.setFollow("follow"); },
   "gps-mode": d => { SETTINGS.gps = d.v; saveSettings(); Rec.setMode(d.v); if ($("#page").hidden) { renderSheet(); floating(); } else renderSettings(); },
+  "back-start": () => { if (Back.start(Rec.lines(), "Your recorded walk")) followBack(); },
+  "track-back": () => { const t = UI.data; if (Back.start(t.lines, t.name)) followBack(); },
+  "back-stop": async () => { if (await dialog({ title: "Stop TracBack?", text: "The guide back to your start will be removed.", yes: "Stop" })) Back.stop(); },
   "rec-pause": () => Rec.pause(),
   "rec-resume": () => Rec.resume(),
   "rec-finish": () => Rec.finish(),
@@ -512,8 +523,9 @@ function followRoutes() { if (Date.now() - lastFollow > 20000) { lastFollow = Da
   catch (e) { map = null; toast("The map couldn't start: " + e.message); return; }
   wireMap(); drawSaved(); renderGPS();
   let sheetStamp = 0;
+  Back.resume();
   GPS.onChange(() => {
-    renderGPS();
+    renderGPS(); if (Back.active()) Back.update();
     if (UI.sheet === "where" && Date.now() - sheetStamp > 900) { sheetStamp = Date.now(); renderSheet(); }
     if (UI.sheet === "directions" && GPS.state.pos && /Waiting for GPS/.test(Plan.state.error)) Plan.calculate();
   });

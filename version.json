@@ -1,6 +1,6 @@
 {
-    "build":  5,
-    "name":  "1.4",
+    "build":  6,
+    "name":  "1.5",
     "shell":  5,
-    "notes":  "Choose a GPS mode for recording: Accurate, Balanced or Long walk. Better handling of very large imported maps."
+    "notes":  "Graphs of distance, speed and height with splits for recorded walks. TracBack guides you back along your path."
 }
