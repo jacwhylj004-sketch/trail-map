@@ -1,8 +1,8 @@
 {
-    "build":  10,
-    "name":  "1.9",
-    "shell":  6,
-    "notes":  "New switch in Settings to stop Trail Map using mobile data. Install the new app file to get it.",
+    "build":  11,
+    "name":  "1.10",
+    "shell":  7,
+    "notes":  "The recording notification now shows your distance, time and speed. Install the new app file to get it.",
     "files":  [
                   {
                       "path":  "app.css",
@@ -16,8 +16,8 @@
                   },
                   {
                       "path":  "version.json",
-                      "sha256":  "8898929dd558e816ce54afd0948119c83f2d3a028a53da637e4f25dfebcdc458",
-                      "size":  175
+                      "sha256":  "8de66ec112923657ce9b52e8e1fee79f09435e1be95e12013a9d7d373503d359",
+                      "size":  184
                   },
                   {
                       "path":  "js/back.js",
@@ -71,8 +71,8 @@
                   },
                   {
                       "path":  "js/record.js",
-                      "sha256":  "0586f27a0a3798f0579955e9d112deb315692f1bd9ba0becf1ed653a055eb2b4",
-                      "size":  6411
+                      "sha256":  "b11d59fb6aae0d5c283b3999879d05604224b8967e786477c7889b779dbf9bbc",
+                      "size":  6608
                   },
                   {
                       "path":  "js/routes.js",
@@ -81,8 +81,8 @@
                   },
                   {
                       "path":  "js/ui.js",
-                      "sha256":  "69d224ee4911aa83d94b79909cc0e602135568168441cd1745bd6c72ba068519",
-                      "size":  50487
+                      "sha256":  "7fd675c0fff1ad6261780cec0ecb76227ffbd91e13439998ec8183049f72419c",
+                      "size":  50561
                   },
                   {
                       "path":  "js/update.js",

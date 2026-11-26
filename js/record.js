@@ -54,12 +54,16 @@ const Rec = (() => {
   function command(name) {
     const b = bridge(); if (!b) return;
     if (b.trackMode) b.trackMode(SETTINGS.gps);
+    setUnits();
     const answer = b[name]();
     if (answer === "permission") toast("Allow precise location first, then try again.");
     else if (answer === "off") toast("Switch on Location first, then try again.");
     else if (answer && answer !== "ok") toast("Recording couldn't start. Try again.");
     poll(); setTimeout(poll, 800);
   }
+
+  /* The recording notification shows distance and speed in your units. */
+  function setUnits() { const b = bridge(); if (b && b.trackUnits) b.trackUnits(imperial()); }
 
   function figures() {
     const end = status === "recording" ? Date.now() : lastTime || started;
@@ -105,7 +109,7 @@ const Rec = (() => {
 
   document.addEventListener("visibilitychange", poll);
   return {
-    poll, save, figures, lines,
+    poll, save, figures, lines, setUnits,
     series: () => Graphs.series(segments, started),
     supported: () => !!bridge(),
     status: () => status,

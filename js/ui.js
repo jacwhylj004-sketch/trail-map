@@ -175,7 +175,7 @@ const SHEETS = {
   record() {
     const s = Rec.status();
     if (!Rec.supported()) return ["Record a walk", '<p>Recording needs the newest Trail Map app file. Ask Claude for it.</p>'];
-    const tip = '<p class="muted small">Recording carries on with the screen off. On a Samsung phone, also set Settings &gt; Apps &gt; Trail Map &gt; Battery to Unrestricted so the phone doesn’t stop it.</p>';
+    const tip = '<p class="muted small">Recording carries on with the screen off, and its notification shows your distance, time and speed. On a Samsung phone, also set Settings &gt; Apps &gt; Trail Map &gt; Battery to Unrestricted so the phone doesn’t stop it.</p>';
     if (s === "idle") return ["Record a walk", `<p>Your path is drawn on the map as you go, with distance, time and climb.</p><button class="btn primary" data-act="rec-start">${ICON.record}Start recording</button>${gpsControls()}${tip}`];
     const note = { paused: "Paused. Nothing is being recorded.", interrupted: "Recording stopped unexpectedly. What was recorded is safe: continue, or finish and save it.", stopped: "Finished. Save this walk, or carry on." }[s] || (Rec.figures().points ? "" : "Waiting for a good GPS signal…");
     const buttons = Rec.saving() ? '<p class="muted">Saving…</p>'
@@ -434,7 +434,7 @@ const ACTIONS = {
   pref: d => {
     SETTINGS[d.k] = d.v; saveSettings();
     if (d.k === "theme") applyTheme();
-    if (d.k === "units") { applyUnits(); renderGPS(); }
+    if (d.k === "units") { applyUnits(); renderGPS(); Rec.setUnits(); }
     renderSettings();
   },
   "area-new": () => openArea(),

@@ -1,6 +1,6 @@
 {
-    "build":  10,
-    "name":  "1.9",
-    "shell":  6,
-    "notes":  "New switch in Settings to stop Trail Map using mobile data. Install the new app file to get it."
+    "build":  11,
+    "name":  "1.10",
+    "shell":  7,
+    "notes":  "The recording notification now shows your distance, time and speed. Install the new app file to get it."
 }
