@@ -118,6 +118,18 @@ input[type="text"], input.field { width: 100%; border: 1px solid var(--line); ba
 .graph-mark { width: 16px; height: 16px; border-radius: 50%; background: var(--series); border: 3px solid #fff; box-shadow: 0 0 5px rgba(0,0,0,.5); pointer-events: none; }
 
 progress { width: 100%; height: 10px; accent-color: var(--accent); }
+/* warnings and the hill graph */
+.sign { width: 20px; height: 20px; vertical-align: -4px; } .sign.danger { color: #d03b3b; } .sign.care { color: #fab219; }
+.item .sign { width: 26px; height: 26px; }
+details.drop { background: var(--card); border-radius: 16px; padding: 0 10px; } details.drop > summary { min-height: 44px; padding: 10px 2px; font-weight: 600; cursor: pointer; }
+details.drop > .stack { padding-bottom: 10px; } details.drop .item { background: var(--surface); }
+.hills { margin: 0; } .hills figcaption { font-weight: 600; font-size: .92rem; } .hills figcaption span { font-weight: 400; color: var(--muted); font-size: .8rem; }
+.hill-read { min-height: 1.5em; font-variant-numeric: tabular-nums; }
+.hills svg { flex: 1; min-width: 0; width: auto; height: 130px; touch-action: pan-y; overflow: visible; }
+.hills path, .hills line { vector-effect: non-scaling-stroke; } .hills .grid { stroke: var(--line); stroke-width: 1; fill: none; }
+.hills .fill { fill: var(--series); opacity: .12; } .hills .line { fill: none; stroke: var(--series); stroke-width: 2; stroke-linejoin: round; }
+.hills .band { opacity: .28; } .hills .band.danger { fill: #d03b3b; } .hills .band.care { fill: #fab219; }
+.hills .cursor { stroke: var(--ink); stroke-width: 1; } .hills .here { stroke: #1a73e8; stroke-width: 3; }
 ol.steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; }
 
 #nav { position: fixed; z-index: 25; left: 0; right: 0; bottom: 0; height: calc(var(--nav-h) + var(--safe-b)); padding-bottom: var(--safe-b); background: var(--bg); display: flex; border-top: 1px solid var(--line); }
@@ -161,6 +173,16 @@ body.navigating #toast { bottom: 120px; }
 .summary b { font-size: 1.5rem; color: var(--accent); } .summary span { color: var(--muted); }
 .item .away { color: var(--muted); font-size: .82rem; white-space: nowrap; }
 
+#nav-top { flex-wrap: wrap; row-gap: 8px; }
+#nav-warn { flex-basis: 100%; display: flex; align-items: center; gap: 10px; background: #fff3d6; color: #1b1b21; border-radius: 12px; padding: 6px 10px; line-height: 1.25; }
+#nav-warn.danger { background: #ffe1de; } #nav-warn .sign { width: 28px; height: 28px; flex: none; } #nav-warn.care .sign { color: #c77700; }
+#nav-warn b, #nav-warn small { display: block; } #nav-warn b { font-size: .95rem; }
+#nav-bottom { flex-wrap: wrap; }
+#nav-more-btn { flex-basis: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 36px; border: 0; border-radius: 18px; background: var(--surface-2); font-size: .86rem; font-weight: 500; } #nav-more-btn svg { width: 20px; height: 20px; }
+#nav-more { flex-basis: 100%; max-height: 42vh; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 8px; padding-right: 4px; } #nav-more > * { flex-shrink: 0; }
+body.nav-mini #nav-more-btn { flex-basis: auto; width: 40px; padding: 0; } body.nav-mini #nav-more-btn span { display: none; }
+body.nav-mini #nav-bottom:has(#nav-more:not([hidden])) { left: 0; width: auto; border-radius: 20px 20px 0 0; }
+body.nav-mini #nav-warn small { display: none; } body.nav-mini #nav-warn b { font-size: .84rem; }
 .folder { flex: none; opacity: .75; } .folder svg { width: 22px; height: 22px; display: block; }
 /* smaller navigation bars (tap the top one) */
 body.nav-mini #nav-top { right: auto; margin: 0; max-width: calc(100% - 20px); gap: 10px; padding: 6px 14px 6px 10px; }

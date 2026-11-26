@@ -58,7 +58,7 @@ function openSheet(name, data) {
 function closeSheet() {
   if (UI.sheet === "card") removePin();
   if (UI.sheet === "route") Routes.select(null);
-  Graphs.clear();
+  Graphs.clear(); Safety.clear();
   UI.sheet = null; UI.data = null; $("#sheet").hidden = true; $("#search-x").hidden = !$("#q").value; floating();
 }
 function goTab(tab) {
@@ -85,7 +85,7 @@ function renderSheet() {
   if (!UI.sheet) return;
   const body = $("#sheet-body"), title = t => { $("#sheet-title").textContent = t; };
   $("#sheet").classList.toggle("tall", ["search", "saved", "route"].includes(UI.sheet));
-  Graphs.clear(); // the marker belongs to the graphs being redrawn
+  Graphs.clear(); Safety.clear(); // the markers belong to the graphs being redrawn
   const view = SHEETS[UI.sheet];
   const [t, html] = view(UI.data);
   title(t); body.innerHTML = html;
@@ -170,13 +170,14 @@ const SHEETS = {
     if (s.error) out += `<p class="warn">${esc(s.error)}</p>`;
     if (r) {
       const p = r.profile, time = routeTime(r);
-      if (!s.measure && time) out = out.slice(0, top) + `<div class="row summary"><div class="grow"><b>${fmtTime(time)}</b> <span>(${fmtDist(r.distance)})<br>Arrive about ${clockAt(time)} if you leave now</span></div><button class="btn primary go" data-act="nav-start">${ICON.heading}Start</button></div>` + out.slice(top);
+      if (!s.measure && time) out = out.slice(0, top) + `<div class="row summary"><div class="grow"><b>${fmtTime(time)}</b> <span>(${fmtDist(r.distance)})<br>Arrive about ${clockAt(time)} if you leave now</span>${s.mode === "foot" && r.hazards && r.hazards.length ? `<br><strong class="warn">${Safety.sign(r.hazards.some(h => Safety.of(h).level === "danger") ? "danger" : "care")} ${Safety.countText(r.hazards)}</strong>` : ""}</div><button class="btn primary go" data-act="nav-start">${ICON.heading}Start</button></div>` + out.slice(top);
       if (r.from && r.from !== "net") out += `<p class="muted small">Worked out on your phone from your ${r.from === "pack" ? "imported map" : "downloaded map"}. It doesn’t know about closures${s.mode === "foot" ? " or rights of way: check paths are open to you" : s.mode === "car" ? " or turn restrictions: follow road signs" : " or cycling rules: follow signs"}.</p>`;
       if (r.gaps && Math.max(...r.gaps) > 60) out += `<p class="warn small">The line starts or ends ${fmtDist(Math.max(...r.gaps))} from a point you chose: there is no mapped way closer.</p>`;
       out += `<div class="stats">${stat("Distance", fmtDist(r.distance))}${s.measure ? stat("Walking time", fmtTime(walkSeconds(r.distance, p ? p.up : 0))) : stat("Time", fmtTime(time))}${stat("Climb / drop", p ? fmtHeight(p.up) + " / " + fmtHeight(p.down) : p === undefined ? "…" : "–")}</div>
-        ${p ? profileSVG(p) : p === null ? '<p class="muted small">Height data isn’t available here while offline.</p>' : ""}
+        ${Safety.listHTML(r, s.mode === "foot" && !s.measure)}
+        ${p ? Safety.drop("hills", `Elevation graph · ${fmtHeight(p.up)} climb`, Safety.graph(r)) : p === null ? '<p class="muted small">Height data isn’t available here while offline.</p>' : '<p class="muted small">Getting the heights…</p>'}
         <div class="row">${r.saved ? '<button class="btn danger" data-act="walk-delete">Delete this walk</button>' : '<button class="btn primary" data-act="walk-save">Save this walk</button>'}<button class="btn" data-act="plan-fit">Show whole route</button><button class="btn" data-act="plan-clear">Remove from map</button></div>
-        ${r.steps.length ? `<details><summary>Step by step (${r.steps.length})</summary><ol class="steps">${r.steps.map(t => `<li>${esc(t)}</li>`).join("")}</ol></details>` : ""}`;
+        ${r.steps.length ? Safety.drop("steps", `Step by step (${r.steps.length})`, `<ol class="steps">${r.steps.map(t => `<li>${esc(t)}</li>`).join("")}</ol>`) : ""}`;
     }
     return [r && r.saved ? r.saved.name : s.measure ? "Measure distance" : "Directions", out];
   },
@@ -312,7 +313,7 @@ async function renderSettings() {
     <section class="panel"><h2>Units</h2>${seg("units", [["km", "Kilometres, metres"], ["mi", "Miles, feet"]])}</section>
     <section class="panel"><h2>Appearance</h2>${seg("theme", [["auto", "Automatic"], ["light", "Light"], ["dark", "Dark"]])}
       <label class="switch"><input type="checkbox" data-set="awake" ${SETTINGS.awake ? "checked" : ""}> <span>Keep the screen on while the app is open (uses more battery)</span></label></section>
-    <section class="panel"><h2>About</h2><p class="small">Map data © OpenStreetMap contributors. Map tiles by OpenFreeMap (© OpenMapTiles). Heights from AWS Terrain Tiles. Route overview by Waymarked Trails (CC BY-SA). Satellite pictures: Sentinel-2 cloudless 2020 by EOX (CC BY-NC-SA 4.0, contains modified Copernicus Sentinel data). Search by Nominatim, directions by FOSSGIS OSRM, routes by Overpass.</p>
+    <section class="panel"><h2>About</h2><p class="small">Map data © OpenStreetMap contributors. Map tiles by OpenFreeMap (© OpenMapTiles). Heights from AWS Terrain Tiles. Route overview by Waymarked Trails (CC BY-SA). Satellite pictures: Sentinel-2 cloudless 2020 by EOX (CC BY-NC-SA 4.0, contains modified Copernicus Sentinel data). Search by Nominatim, walking directions by BRouter, other directions by FOSSGIS OSRM, routes by Overpass.</p>
       <p class="small">Paths on a map aren't always rights of way or safe to walk. Carry a paper map and compass in the hills, and keep your phone charged.</p></section>`;
 }
 
@@ -464,7 +465,7 @@ const ACTIONS = {
     const last = s.stops[s.stops.length - 1];
     const name = await dialog({ title: "Save walk", input: s.measure ? "Measured walk" : "Walk to " + (last ? last.name : "…"), yes: "Save" });
     if (!name || s.result !== r) return;
-    const saved = { id: uid(), name: name.slice(0, 80), mode: s.measure ? "measure" : s.mode, coords: r.coords, distance: r.distance, duration: r.duration, steps: r.steps, profile: r.profile || null, turns: r.turns };
+    const saved = { id: uid(), name: name.slice(0, 80), mode: s.measure ? "measure" : s.mode, coords: r.coords, distance: r.distance, duration: r.duration, steps: r.steps, profile: r.profile || null, turns: r.turns, hazards: r.hazards };
     SAVED.routes.unshift(saved); persistSaved(); r.saved = saved; renderSheet(); toast("Walk saved. Download its area to see the map offline.");
   },
   "walk-delete": async () => { const r = Plan.state.result && Plan.state.result.saved; if (r && await dialog({ title: "Delete saved walk?", text: r.name, yes: "Delete" })) { SAVED.routes = SAVED.routes.filter(x => x.id !== r.id); persistSaved(); Plan.clear(); goTab("saved"); } },
@@ -487,6 +488,8 @@ const ACTIONS = {
   "nav-exit": () => Nav.stop(),
   "nav-view": () => Nav.view(),
   "nav-voice": () => Nav.voice(),
+  "nav-more": () => Nav.more(),
+  "hazard-show": d => { const r = Plan.state.result, h = r && r.hazards[+d.i]; if (!h) return; Space.size(true); fit(Safety.stretch(r.coords, Math.max(0, h.from - 60), h.to + 60)); },
   "search-show": () => { SETTINGS.hideSearch = false; saveSettings(); document.body.classList.remove("search-mini"); $("#q").focus(); },
   "search-clear": () => { searchSeq++; clearTimeout(typingTimer); $("#q").value = ""; $("#search-x").hidden = true; if (UI.sheet === "search") closeSheet(); },
   pref: d => {
@@ -621,7 +624,7 @@ function followRoutes() { if (Date.now() - lastFollow > 20000) { lastFollow = Da
     if (UI.sheet === "directions" && GPS.state.pos && /Waiting for GPS/.test(Plan.state.error)) Plan.calculate();
   });
   Routes.onChange(() => { renderChip(); if (UI.sheet === "routes") { renderSheet(); floating(); } });
-  Plan.onChange(() => { if (UI.sheet === "directions") { const open = $("#sheet-body details") && $("#sheet-body details").open; renderSheet(); if (open && $("#sheet-body details")) $("#sheet-body details").open = true; floating(); } });
+  Plan.onChange(() => { if (!Nav.active()) Safety.draw(Plan.state.result && Plan.state.result.mode === "foot" ? Plan.state.result : null); if (UI.sheet === "directions") { renderSheet(); floating(); } });
   Offline.onChange(() => { renderChip(); if (!$("#page").hidden) renderSettings(); });
   // the phone may have changed network while this page was starting
   if (canSwitchData()) dataBlocked = NATIVE.dataBlocked();

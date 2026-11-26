@@ -1,23 +1,23 @@
 {
-    "build":  15,
-    "name":  "1.14",
+    "build":  16,
+    "name":  "1.15",
     "shell":  8,
-    "notes":  "Remove a route from the map with the X on its new bar. More room for the map: shrink panels, hide the altitude box and search bar, close messages, smaller guidance banners and a Full map button.",
+    "notes":  "Walking routes keep further from main roads, with warnings on the route, during navigation and aloud. Elevation graphs in Directions and while navigating.",
     "files":  [
                   {
                       "path":  "app.css",
-                      "sha256":  "2a2fcdb1e8c171a9d4438f32f363f3e53d8919f580504ad9e0dae586a90517f7",
-                      "size":  18762
+                      "sha256":  "8378699728a41fdbb86dbe8d04261c4687d07b6b6e25908d7781dea755718646",
+                      "size":  21359
                   },
                   {
                       "path":  "index.html",
-                      "sha256":  "5cdb76433012a02a9245260f1a4507848e50fb71cc47918dc4fe6319f119e349",
-                      "size":  5683
+                      "sha256":  "065f90a3659ebfead1b1a79d2c45f62dfed9da76e532203f015fcc4cc32e1d8d",
+                      "size":  5903
                   },
                   {
                       "path":  "version.json",
-                      "sha256":  "443a70ebb54d13328c57bb3b0737334be168e23bdc23b30515c4278c820bd705",
-                      "size":  275
+                      "sha256":  "5f87cee17defa1da419c63c86b3e754ae33f6e36cf2c093b56bcecd574ebe32f",
+                      "size":  235
                   },
                   {
                       "path":  "js/back.js",
@@ -46,8 +46,8 @@
                   },
                   {
                       "path":  "js/map.js",
-                      "sha256":  "6aeea3d8fe04dd31a345574f4d340e78200ddbfe67c6f767c23df3956e8b1b08",
-                      "size":  19670
+                      "sha256":  "18c322be961951a6c20973f9d850e6cbab15649a496d9ddea27ab9c48785cace",
+                      "size":  20252
                   },
                   {
                       "path":  "js/mvt.js",
@@ -56,8 +56,8 @@
                   },
                   {
                       "path":  "js/navigate.js",
-                      "sha256":  "52f794921f6f38325fe0c63bd0048b7894607283bf6c953ea5670bbbbab0e9a7",
-                      "size":  14546
+                      "sha256":  "d5201a07e691ff8211a16a13498d09412298f779c26aefef6e1bde3309e0a371",
+                      "size":  19683
                   },
                   {
                       "path":  "js/offline.js",
@@ -81,8 +81,8 @@
                   },
                   {
                       "path":  "js/plan.js",
-                      "sha256":  "81f5a36acc4e8cfc50ee23060b60af44d30c0fb2a4ce4fd99417b12b2f77653b",
-                      "size":  9415
+                      "sha256":  "a300de8a64bafebbd3e4e5a7a56e5187bed9dd81fb8efa68e3d4f78b789f681b",
+                      "size":  10949
                   },
                   {
                       "path":  "js/record.js",
@@ -91,8 +91,8 @@
                   },
                   {
                       "path":  "js/router.js",
-                      "sha256":  "5648fef2440833e4e8c93e779fed8263cc81a9da5e6f87026b0b032e0ec63b62",
-                      "size":  24591
+                      "sha256":  "1eb951adc6d56c7e935dd3cab0059de4df45387f3387d3d23b32182b33a55663",
+                      "size":  26588
                   },
                   {
                       "path":  "js/routes.js",
@@ -100,19 +100,29 @@
                       "size":  9355
                   },
                   {
+                      "path":  "js/safety.js",
+                      "sha256":  "1e16903b76f6938f0ce4080bea2914eb66ae16cca7f97b16589b5ed38a64ca02",
+                      "size":  11509
+                  },
+                  {
                       "path":  "js/space.js",
-                      "sha256":  "14c03ab56a05a4b1b97468f38eeed43e5b9975d609ed53ac44f8bc7046ff9e5f",
-                      "size":  6498
+                      "sha256":  "0d52f03947aa425e3ff812d11b35f3278cc0408dc23c47f62ab612fa8e26fb20",
+                      "size":  6504
                   },
                   {
                       "path":  "js/ui.js",
-                      "sha256":  "20736f9cddab684d5807eec6b987d99ba0b2c239d30376c0fa9e66b4aed5bd67",
-                      "size":  57107
+                      "sha256":  "dc7cb25f33fb2c50b5c7727477c11094f111d699dafc38252a81709c725673cc",
+                      "size":  57766
                   },
                   {
                       "path":  "js/update.js",
                       "sha256":  "f7c2b9cbf74b5aa2ccf94e61cb1e9b933a32328dc1afccf88d8341f38ec25ec4",
                       "size":  3317
+                  },
+                  {
+                      "path":  "js/walker.js",
+                      "sha256":  "7cbeb368cf8742ea07fffc779a75a2894fc49f8ea3726320b15d18292269efd6",
+                      "size":  6339
                   },
                   {
                       "path":  "vendor/maplibre-contour.js",
@@ -133,6 +143,11 @@
                       "path":  "vendor/style.json",
                       "sha256":  "408245464e76791801a64393c403433d09e8110eb9516040f8dc2b62584eee2a",
                       "size":  43311
+                  },
+                  {
+                      "path":  "vendor/walking.brf.txt",
+                      "sha256":  "497edfb15cc256074670eabb4b59573e484ecc0378c72ffac5a4163fedf4fb5a",
+                      "size":  27265
                   },
                   {
                       "path":  "vendor/fonts/Noto Sans Bold/0-255.pbf",

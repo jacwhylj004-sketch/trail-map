@@ -31,7 +31,7 @@ async function buildStyle() {
     barriers: { type: "geojson", data: EMPTY, attribution: OVERPASS_CREDIT },
     osgrid: { type: "geojson", data: EMPTY },
     routes: { type: "geojson", data: EMPTY, attribution: OVERPASS_CREDIT },
-    plan: { type: "geojson", data: EMPTY }, track: { type: "geojson", data: EMPTY }, back: { type: "geojson", data: EMPTY }, accuracy: { type: "geojson", data: EMPTY }, saved: { type: "geojson", data: EMPTY }
+    plan: { type: "geojson", data: EMPTY }, hazard: { type: "geojson", data: EMPTY }, track: { type: "geojson", data: EMPTY }, back: { type: "geojson", data: EMPTY }, accuracy: { type: "geojson", data: EMPTY }, saved: { type: "geojson", data: EMPTY }
   });
 
   const layers = style.layers.filter(l => l.id !== "natural_earth" && l.id !== "building-3d");
@@ -84,6 +84,8 @@ async function buildStyle() {
     { id: "accuracy", type: "fill", source: "accuracy", paint: { "fill-color": "#1a73e8", "fill-opacity": 0.12 } },
     { id: "plan-casing", type: "line", source: "plan", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#ffffff", "line-width": 8 } },
     { id: "plan-line", type: "line", source: "plan", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#0b57d0", "line-width": 5 } },
+    { id: "hazard-line", type: "line", source: "hazard", filter: ["==", ["geometry-type"], "LineString"], layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": ["match", ["get", "level"], "danger", "#d03b3b", "#f29d00"], "line-width": 5 } },
+    { id: "hazard-point", type: "circle", source: "hazard", filter: ["==", ["geometry-type"], "Point"], paint: { "circle-radius": 7, "circle-color": ["match", ["get", "level"], "danger", "#d03b3b", "#f29d00"], "circle-stroke-color": "#1b1b21", "circle-stroke-width": 2 } },
     { id: "track-casing", type: "line", source: "track", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#ffffff", "line-width": 8 } },
     { id: "track-line", type: "line", source: "track", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#ff5a00", "line-width": 4.5 } },
     { id: "back-casing", type: "line", source: "back", filter: ["==", ["geometry-type"], "LineString"], layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#ffffff", "line-width": 9 } },

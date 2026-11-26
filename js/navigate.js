@@ -83,6 +83,55 @@ const Nav = (() => {
     $("#nav-left").textContent = `${fmtDist(left)} · arrive ${clockAt(seconds)}`;
   }
 
+  /* ---- warnings: the one you are on, or else the next one coming ---- */
+  const WARN_AHEAD = 250, SAY_AHEAD = 160;
+  function warning(along) {
+    const on = nav.hazards.filter(h => !Safety.of(h).point && along >= h.from - 5 && along < h.to).sort((a, b) => (Safety.of(b).level === "danger") - (Safety.of(a).level === "danger"))[0];
+    const next = nav.hazards.find(h => h.from > along - (Safety.of(h).point ? 10 : -5) && h.from - along <= WARN_AHEAD);
+    /* a worse one just ahead is more important than a lesser one underfoot */
+    const h = on && next && Safety.of(next).level === "danger" && Safety.of(on).level !== "danger" ? next : on || next;
+    return h ? { h, on: h === on } : null;
+  }
+  function showWarning(w, along) {
+    const box = $("#nav-warn");
+    if (!w) { box.hidden = true; return; }
+    const k = Safety.of(w.h), away = fmtDist(Math.max(0, Math.round((w.h.from - along) / 10) * 10)), more = fmtDist(Math.max(0, w.h.to - along));
+    const html = `${Safety.sign(k.level)}<span><b>${w.on ? k.title : `In ${away}: ${k.title}`}</b><small>${w.on ? more + " more" : k.point ? "" : "for " + fmtDist(w.h.to - w.h.from)}${w.h.name ? " · " + esc(w.h.name) : ""}</small></span>`;
+    box.className = k.level; box.hidden = false; if (box.innerHTML !== html) box.innerHTML = html;
+  }
+  /* Spoken once for each, as you come near it (or find yourself on it). */
+  function warningWords(along) {
+    const h = nav.hazards.find(h => !nav.said.has(h) && h.from - along <= SAY_AHEAD && (Safety.of(h).point ? h.from > along - 10 : h.to > along + 20));
+    if (!h) return "";
+    nav.said.add(h);
+    const k = Safety.of(h), away = h.from - along;
+    return `Caution. ${away > 30 ? "In " + spoken(away) : "Now"}, you ${away > 30 ? "will " : ""}${k.say}${!k.point && h.to - h.from > 80 ? " for " + spoken(h.to - Math.max(along, h.from)) : ""}`;
+  }
+
+  /* ---- the drop-down with the hill graph and the warnings still to come ---- */
+  const HILLS = open => `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 19 6-10 4 6 3-4 5 8z"/></svg><span>${open ? "Close" : "Elevation and warnings"}</span>`;
+  function moreLive() {
+    const box = $("#nav-more"); if (box.hidden || !nav) return;
+    const along = nav.along || 0, r = nav.route, p = r.profile;
+    if (p) { Safety.here(box, r, along); const a = Safety.ahead(p, along * (r.distance ? p.total / r.distance : 1)), t = box.querySelector("#nav-climb"); if (t) t.textContent = `Still to climb ${fmtHeight(a.up)}, drop ${fmtHeight(a.down)}`; }
+    const left = nav.hazards.filter(h => h.to >= along - 10), list = box.querySelector("#nav-hazards");
+    if (!list) return;
+    const html = nav.mode !== "foot" ? "" : nav.route.hazards === null ? '<p class="warn small">Road warnings couldn’t be checked for this route.</p>' : !left.length ? '<p class="muted small">No more warnings mapped on this route.</p>'
+      : left.map(h => `<div class="item">${Safety.sign(Safety.of(h).level)}<span class="grow">${Safety.of(h).title}<small>${h.from > along ? "In " + fmtDist(h.from - along) : "You are on it"}${Safety.of(h).point ? "" : " · " + fmtDist(h.to - Math.max(h.from, along))}${h.name ? " · " + esc(h.name) : ""}</small></span></div>`).join("");
+    if (list.dataset.html !== html) { list.dataset.html = html; list.innerHTML = html; }
+  }
+  function moreDraw() {
+    const box = $("#nav-more"); if (box.hidden || !nav) return;
+    const p = nav.route.profile;
+    const graph = p ? Safety.graph(Object.assign({}, nav.route, { hazards: nav.mode === "foot" ? nav.route.hazards : [] })) : `<p class="muted small">${p === undefined ? "Getting the heights…" : "Height data isn’t available here while offline."}</p>`;
+    box.innerHTML = `${p ? '<p id="nav-climb"></p>' : ""}${graph}<div id="nav-hazards" class="stack"></div>`;
+    moreLive();
+  }
+  function more(open = $("#nav-more").hidden) {
+    $("#nav-more").hidden = !open; $("#nav-more-btn").innerHTML = HILLS(open); $("#nav-more-btn").setAttribute("aria-expanded", String(open));
+    if (open) moreDraw(); else Safety.clear();
+  }
+
   async function reroute(pos) {
     if (nav.busy) return;
     const mine = nav; nav.busy = true; nav.rerouted = Date.now();
@@ -104,12 +153,15 @@ const Nav = (() => {
     /* the route's own distances can differ a little from those measured along the line */
     const scale = route.distance ? total() / route.distance : 1;
     nav.turns = nav.turns.map(t => Object.assign({}, t, { along: t.dir === "arrive" ? total() : Math.min(total(), t.along * scale) }));
+    nav.hazards = nav.mode === "foot" && route.hazards ? route.hazards.map(h => Object.assign({}, h, { from: Math.min(total(), h.from * scale), to: Math.min(total(), h.to * scale) })) : [];
     nav.pace = route.distance ? (route.duration || walkSeconds(route.distance, route.profile ? route.profile.up : 0)) / route.distance : 0.72;
     if (nav.mode === "foot" && route.profile && route.distance) nav.pace = walkSeconds(route.distance, route.profile.up) / route.distance;
     /* stops in between, so a new route still goes through them */
     const between = nav.turns.filter(t => t.dir === "stop");
     nav.stops = passed ? passed.map((s, i) => ({ ll: s.ll, along: between[i] ? between[i].along : total() })) : between.map((t, i) => ({ ll: nav.via[i] || pointAt(t.along), along: t.along }));
-    setData("plan", lineFeature(route.coords));
+    setData("plan", lineFeature(route.coords)); Safety.draw(nav.mode === "foot" ? route : null);
+    showWarning(null); moreDraw();
+    if (route.profile === undefined) { const mine = nav; profileOf(route.coords).then(p => { route.profile = p; if (nav === mine && nav.route === route) moreDraw(); }).catch(() => {}); }
   }
 
   function update(force) {
@@ -123,7 +175,8 @@ const Nav = (() => {
     if (!off) { nav.along = here.along; nav.off = 0; nav.joined = true; nav.failed = ""; }
     else if (pos.accuracy < 60) nav.off++;
     const along = nav.along || 0, left = Math.max(0, total() - along);
-    camera();
+    camera(); moreLive();
+    showWarning(off ? null : warning(along), along);
 
     if (off) {
       /* Starting somewhere else (a route from another place): show the way to its start rather than replacing it. */
@@ -147,13 +200,17 @@ const Nav = (() => {
     /* what to say, and when: once well before the turn, and again as you reach it */
     const early = nav.mode === "car" ? 450 : nav.mode === "bike" ? 180 : 90, key = Math.round(turn.along);
     if (!nav.joined) return;
+    let words = "";
     if (to <= now) {
-      if (!nav.said.has("now" + key)) { nav.said.add("now" + key); nav.said.add("soon" + key); say(turn.text + (soon ? ". " + soon : "")); }
+      if (!nav.said.has("now" + key)) { nav.said.add("now" + key); nav.said.add("soon" + key); words = turn.text + (soon ? ". " + soon : ""); }
     } else if (to <= early && !nav.said.has("soon" + key)) {
-      nav.said.add("soon" + key); say(`In ${spoken(to)}, ${lower(turn.text)}`);
+      nav.said.add("soon" + key); words = `In ${spoken(to)}, ${lower(turn.text)}`;
     } else if (!nav.said.has("long" + key) && to > early * 2.5) {
-      nav.said.add("long" + key); say(`Continue for ${spoken(to)}`);
+      nav.said.add("long" + key); words = `Continue for ${spoken(to)}`;
     }
+    /* said in one breath, as new words cut off old ones */
+    words = [words, warningWords(along)].filter(Boolean).join(". ");
+    if (words) say(words);
   }
 
   function buttons() {
@@ -172,8 +229,8 @@ const Nav = (() => {
     closeSheet(); if (Back.active()) $("#back").hidden = true;
     document.body.classList.add("navigating"); $("#nav-top").hidden = false; $("#nav-bottom").hidden = false;
     GPS.setFollow("off"); GPS.start(); keepAwake(true); map.resize();
-    use(r); buttons();
-    nav.opening = nav.start ? nav.start.text : "Starting navigation";
+    use(r); buttons(); more(false);
+    nav.opening = (nav.start ? nav.start.text : "Starting navigation") + (nav.hazards.length ? `. This route has ${nav.hazards.length === 1 ? "one warning" : nav.hazards.length + " warnings"}` : "");
     update(true); camera(false);
     if (nav.opening) { const words = nav.opening; nav.opening = ""; say(words); }
     if (!canSpeak() && NATIVE) toast("Spoken directions need the newest Trail Map app file.");
@@ -182,14 +239,14 @@ const Nav = (() => {
   function stop() {
     if (!nav) return;
     const route = nav.route, recalculate = nav.changed && !(Plan.state.result && Plan.state.result.saved);
-    hush(); nav = null;
+    hush(); more(false); nav = null;
     document.body.classList.remove("navigating"); $("#nav-top").hidden = true; $("#nav-bottom").hidden = true;
     keepAwake(SETTINGS.awake || !!Offline.job()); map.resize();
     map.easeTo({ pitch: SETTINGS.relief3d !== "off" ? 55 : 0, bearing: 0, padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 400 });
     Back.update();
     UI.tab = "directions"; window.nav(); openSheet("directions");
     if (recalculate) Plan.calculate(); // you went another way: show the route from where you are now
-    else { setData("plan", lineFeature(route.coords)); fit(route.coords); }
+    else { setData("plan", lineFeature(route.coords)); Safety.draw(Plan.state.result && Plan.state.result.mode === "foot" ? Plan.state.result : null); fit(route.coords); }
   }
 
   /* Overview of the whole route, or back to following. */
@@ -212,5 +269,5 @@ const Nav = (() => {
   function attach() { map.on("dragstart", () => { if (nav && nav.follow) { nav.follow = false; buttons(); } }); }
   document.addEventListener("visibilitychange", () => { if (nav && !document.hidden) keepAwake(true); });
 
-  return { start, stop, update: () => update(false), view, voice, ask, attach, active: () => !!nav };
+  return { start, stop, update: () => update(false), view, voice, more: () => more(), ask, attach, active: () => !!nav };
 })();

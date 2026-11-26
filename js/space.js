@@ -114,7 +114,7 @@ const Space = (() => {
   Plan.onChange(() => { if (Plan.state.result || Plan.state.busy || Plan.state.stops.length) track = null; bar(); });
 
   return {
-    bar, head, chip, remove, full,
+    bar, head, chip, remove, full, size,
     showTrack: t => { track = t; bar(); },
     isFull: () => document.body.classList.contains("full")
   };

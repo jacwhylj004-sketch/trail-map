@@ -1,6 +1,6 @@
 {
-    "build":  15,
-    "name":  "1.14",
+    "build":  16,
+    "name":  "1.15",
     "shell":  8,
-    "notes":  "Remove a route from the map with the X on its new bar. More room for the map: shrink panels, hide the altitude box and search bar, close messages, smaller guidance banners and a Full map button."
+    "notes":  "Walking routes keep further from main roads, with warnings on the route, during navigation and aloud. Elevation graphs in Directions and while navigating."
 }

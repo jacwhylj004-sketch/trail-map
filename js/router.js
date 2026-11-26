@@ -6,7 +6,7 @@ const Router = (() => {
   const Z = 14, EXTENT = 4096, MAX_ROAD_TILES = 1100, SNAP = 600; // metres from a point to the nearest usable way
 
   /* How willingly each kind of way is used: length is multiplied by this (1 is ideal); missing means never. */
-  const FOOT = { path: 1, footway: 1, pedestrian: 1, bridleway: 1, track: 1, cycleway: 1.05, steps: 1.1, service: 1.05, minor: 1.1, tertiary: 1.25, secondary: 1.45, primary: 1.8, trunk: 3, ferry: 1.5 };
+  const FOOT = { path: 1, footway: 1, pedestrian: 1, bridleway: 1, track: 1, cycleway: 1.05, steps: 1.1, service: 1.05, minor: 1.15, tertiary: 1.8, secondary: 2.8, primary: 4.5, trunk: 9, ferry: 1.5 }; // walkers go well round main roads
   const BIKE = { cycleway: 0.85, minor: 1, tertiary: 1.05, service: 1.1, secondary: 1.2, primary: 1.5, trunk: 3, track: 1.5, bridleway: 1.4, path: 2.5, footway: 4, pedestrian: 2.5, ferry: 1.5 };
   const CAR = { motorway: 110, trunk: 85, primary: 65, secondary: 55, tertiary: 45, minor: 30, service: 15, ferry: 15 }; // km/h
   const PACK_CLASS = { 1: "motorway", 2: "trunk", 3: "primary", 4: "secondary", 5: "tertiary", 6: "minor", 7: "service",
@@ -369,7 +369,12 @@ const Router = (() => {
     legs.slice(1).forEach(i => turns.push({ along: lineLength(coords.slice(0, i + 1)), dir: "stop", text: "You reach a stop on your route" }));
     turns.sort((a, b) => a.along - b.along);
     turns.push({ along: distance, dir: "arrive", text: "Arrive at your destination" });
-    return { coords, distance, duration, turns, from: source.type, gaps: snapped.map(s => s.d * net.perUnit) };
+    let hazards;
+    if (mode === "foot") { // these maps don't say where the pavements are
+      hazards = Safety.find(path.steps.map((s, i) => ({ len: haversine(coords[i], coords[i + 1]), cls: net.edges[s.edge].way.cls, mapped: false })));
+      for (const h of hazards) { let along = 0, i = 0; while (i < names.length - 1 && along + haversine(coords[i], coords[i + 1]) < (h.from + h.to) / 2) { along += haversine(coords[i], coords[i + 1]); i++; } h.name = names[i] || ""; }
+    }
+    return { coords, distance, duration, turns, hazards, from: source.type, gaps: snapped.map(s => s.d * net.perUnit) };
   }
 
   /* stops: [[lon, lat]]; mode: "foot", "bike" or "car". Resolves to a route, or throws a message fit to show. */
@@ -394,5 +399,26 @@ const Router = (() => {
       : "No way found on the maps on this phone. Part of the route may be outside your downloaded area.");
   }
 
-  return { route };
+  /* The names of the ways at some distances along a line, read from the downloaded or online map. */
+  async function names(coords, spots) {
+    const pairs = spots.map(s => [Safety.pointAt(coords, Math.max(0, s - 5)), Safety.pointAt(coords, s + 5)]);
+    const want = new Map();
+    for (const [a, b] of pairs) { const x = lon2x((a[0] + b[0]) / 2, Z), y = lat2y((a[1] + b[1]) / 2, Z); if (want.size < 80) want.set(x + "/" + y, [x, y]); }
+    const tiles = [...want.values()], found = { ways: [], names: [] };
+    const source = { type: "area", x0: Math.min(...tiles.map(t => t[0])) * EXTENT, y0: Math.min(...tiles.map(t => t[1])) * EXTENT };
+    const late = () => new Promise(res => setTimeout(() => res(null), 8000));
+    let next = 0;
+    await Promise.all(Array.from({ length: 6 }, async () => {
+      while (next < tiles.length) {
+        const [x, y] = tiles[next++];
+        const buf = await Promise.race([getTile("vt", Z, x, y).catch(() => null), late()]);
+        if (buf && buf.byteLength) try { waysFrom(buf, x, y, source, found); } catch (e) { /* a damaged tile */ }
+      }
+    }));
+    const world = EXTENT * 2 ** Z, nameOf = namer(found.names, 40075016.686 * Math.cos(coords[0][1] * RAD) / world);
+    const unit = ll => { const r = ll[1] * RAD; return [(ll[0] + 180) / 360 * world - source.x0, (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * world - source.y0]; };
+    return pairs.map(([a, b]) => nameOf(unit(a), unit(b)));
+  }
+
+  return { route, names };
 })();

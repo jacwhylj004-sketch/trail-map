@@ -30,19 +30,31 @@ async function searchPlaces(text) {
 }
 
 /* ---- height profile ---- */
-async function profileOf(coords) {
+/* Points evenly spaced along a line, for its height profile: { total, pts, at: [how far between which points] }. */
+function sampled(coords) {
   const total = lineLength(coords); if (!total) return null;
-  const n = Math.min(200, Math.max(12, Math.round(total / 50))), pts = [];
+  const n = Math.min(200, Math.max(12, Math.round(total / 50))), pts = [], at = [];
   let seg = 1, before = 0;
   for (let i = 0; i <= n; i++) {
     const want = total * i / n;
     while (seg < coords.length - 1 && before + haversine(coords[seg - 1], coords[seg]) < want) { before += haversine(coords[seg - 1], coords[seg]); seg++; }
     const a = coords[seg - 1], b = coords[seg], len = haversine(a, b), f = len ? clamp((want - before) / len, 0, 1) : 0;
-    pts.push([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]);
+    pts.push([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]); at.push([seg, f]);
   }
+  return { total, pts, at };
+}
+async function profileOf(coords) {
+  const s = sampled(coords); if (!s) return null;
   const heights = [];
-  for (const p of pts) heights.push(await elevationAt(p));
-  if (heights.some(h => h == null)) return null;
+  for (const p of s.pts) heights.push(await elevationAt(p));
+  return heights.some(h => h == null) ? null : profileFrom(heights, s.total);
+}
+/* The same from heights that came with the route, one for each of its points. */
+function profileAlong(coords, known) {
+  const s = sampled(coords);
+  return s && profileFrom(s.at.map(([i, f]) => known[i - 1] + (known[i] - known[i - 1]) * f), s.total);
+}
+function profileFrom(heights, total) {
   let up = 0, down = 0, ref = heights[0];
   for (const h of heights) { const d = h - ref; if (Math.abs(d) >= 4) { if (d > 0) up += d; else down -= d; ref = h; } } // ignore tiny bumps in the height data
   return { heights, up, down, min: Math.min(...heights), max: Math.max(...heights), total };
@@ -110,6 +122,21 @@ const Plan = (() => {
   /* A route through the points: from the internet when there is one, otherwise worked out on the phone. */
   async function find(pts, mode, progress = () => {}, stale = () => false) {
     let failed = null;
+    /* walking: first the route finder that keeps off main roads and can warn about them; if it is down, the phone's
+       own, which does too; the other internet service last, as it can do neither */
+    if (online() && mode === "foot") {
+      try {
+        const found = await Walker.route(pts);
+        if (found.heights) found.profile = profileAlong(found.coords, found.heights);
+        delete found.heights;
+        return found;
+      } catch (e) { failed = e; }
+      if (stale()) return null;
+      try { const found = await Router.route(pts, mode, progress, stale); if (found) return found; } catch (e) { /* no map on the phone for it */ }
+      if (stale()) return null;
+      try { return Object.assign(await fromServer(pts, mode), { hazards: null }); }
+      catch (e) { if (e.final) throw e; throw new Error("The directions servers didn't answer. Try again."); }
+    }
     if (online()) {
       try { return await fromServer(pts, mode); }
       catch (e) { if (e.final) throw e; failed = e; }
@@ -133,8 +160,9 @@ const Plan = (() => {
         : await find(pts, state.mode, words => { if (!stale()) { state.progress = words; changed(); } }, stale);
       if (stale()) return;
       setData("plan", lineFeature(found.coords));
-      state.result = Object.assign(found, { mode: state.mode, steps: stepList(found.turns, found.distance), profile: undefined });
+      state.result = Object.assign(found, { mode: state.mode, steps: stepList(found.turns, found.distance) });
       state.busy = false; changed();
+      if (found.profile) return; // the heights came with the route
       const profile = await profileOf(found.coords);
       if (stale()) return;
       state.result.profile = profile; changed();
@@ -157,7 +185,7 @@ const Plan = (() => {
     showSaved(r) {
       clear(); state.mode = r.mode === "measure" ? state.mode : r.mode;
       setData("plan", lineFeature(r.coords));
-      state.result = { coords: r.coords, distance: r.distance, duration: r.duration, steps: r.steps || [], turns: r.turns || [], mode: r.mode, profile: r.profile, saved: r };
+      state.result = { coords: r.coords, distance: r.distance, duration: r.duration, steps: r.steps || [], turns: r.turns || [], hazards: r.hazards, mode: r.mode, profile: r.profile, saved: r };
       state.measure = r.mode === "measure"; changed();
     }
   };
