@@ -76,7 +76,7 @@ const Packs = (() => {
       m.setLayoutProperty(id, "visibility", off ? "none" : "visible");
     });
     // hill shading needs height data: leave it out when there is no internet to get it from
-    if (!tilted) m.setLayoutProperty("hillshade", "visibility", SETTINGS.shading === "off" || (now && !navigator.onLine) ? "none" : "visible");
+    if (!tilted) m.setLayoutProperty("hillshade", "visibility", SETTINGS.shading === "off" || (now && !online()) ? "none" : "visible");
   }
 
   function build() {

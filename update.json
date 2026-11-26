@@ -1,8 +1,8 @@
 {
-    "build":  9,
-    "name":  "1.8",
-    "shell":  5,
-    "notes":  "Fewer, clearer town names on zoomed-out imported maps.",
+    "build":  10,
+    "name":  "1.9",
+    "shell":  6,
+    "notes":  "New switch in Settings to stop Trail Map using mobile data. Install the new app file to get it.",
     "files":  [
                   {
                       "path":  "app.css",
@@ -16,8 +16,8 @@
                   },
                   {
                       "path":  "version.json",
-                      "sha256":  "44de70316d2653cda0f38c936a71ad8e77d2f0520ffd60905ec5b96b7a012c93",
-                      "size":  133
+                      "sha256":  "8898929dd558e816ce54afd0948119c83f2d3a028a53da637e4f25dfebcdc458",
+                      "size":  175
                   },
                   {
                       "path":  "js/back.js",
@@ -26,13 +26,13 @@
                   },
                   {
                       "path":  "js/barriers.js",
-                      "sha256":  "d3d9fd385a62e1b39002316a859a0aa1ac1b0fbf6d4b79fe9d94a1f4d989fb42",
-                      "size":  8651
+                      "sha256":  "7b9d5a2cf0958385c5546a0bbe0f3122d846364eaf1732bd9c9378b62837a567",
+                      "size":  8701
                   },
                   {
                       "path":  "js/core.js",
-                      "sha256":  "7c86d9230d4e0a00c34752b015fb736cb394f50908573dd804c421f183a236f9",
-                      "size":  9571
+                      "sha256":  "41efa6e5a37a652c0af02525c10f27c0dd5dcede9b6dfb0420c923f572e1d685",
+                      "size":  10131
                   },
                   {
                       "path":  "js/graphs.js",
@@ -46,8 +46,8 @@
                   },
                   {
                       "path":  "js/offline.js",
-                      "sha256":  "767a7e32ccd4dd08cef8b88a57f1797e5248852eb878b15ecaef7386fe911f1a",
-                      "size":  11788
+                      "sha256":  "e308c9495a75871611a2f17b1d95bf0561fee9b6444b729656425f1c81834a1e",
+                      "size":  11950
                   },
                   {
                       "path":  "js/osmap.js",
@@ -56,8 +56,8 @@
                   },
                   {
                       "path":  "js/packs.js",
-                      "sha256":  "b78697cf45c6933bfbe2ad9153e471623f0bc519a6bb47c4aab44b46d4b53bc6",
-                      "size":  15308
+                      "sha256":  "fe7956436c339fef7c96c259c2451d4c135f297d3a0a947a784560ea0bfe5809",
+                      "size":  15300
                   },
                   {
                       "path":  "js/paths.js",
@@ -66,8 +66,8 @@
                   },
                   {
                       "path":  "js/plan.js",
-                      "sha256":  "7dc2f605d7ca56de70c89de3d7d4a9658819c9225bc3094de7f169d5ecf3759a",
-                      "size":  7778
+                      "sha256":  "31bbdff8b2df3869fef2d1308db4d86e4c186cfb2911963dfb4d853a317c20f5",
+                      "size":  7785
                   },
                   {
                       "path":  "js/record.js",
@@ -76,18 +76,18 @@
                   },
                   {
                       "path":  "js/routes.js",
-                      "sha256":  "8062e788f8057dfdc313d9c7890ccbf1caa4e9b96bae7fc33982f3bd0cb86369",
-                      "size":  9321
+                      "sha256":  "f72488afbeb156795ee34c94db7e1abfe15547e63680585dcb2fe4456798ea9e",
+                      "size":  9355
                   },
                   {
                       "path":  "js/ui.js",
-                      "sha256":  "bddc46c762785f89c723af982c62cec5ad24358b9c7cef2ec99d40b58384b576",
-                      "size":  48641
+                      "sha256":  "69d224ee4911aa83d94b79909cc0e602135568168441cd1745bd6c72ba068519",
+                      "size":  50487
                   },
                   {
                       "path":  "js/update.js",
-                      "sha256":  "5b21bf8bfa15e0936d7c4d16cd37b8718d97a4a396e83d1ea559d2aa024c5ca0",
-                      "size":  3204
+                      "sha256":  "d247abe11777c814c1799bdbf1d7891e04c13db549d71e80c922a00fdf110308",
+                      "size":  3275
                   },
                   {
                       "path":  "vendor/maplibre-contour.js",

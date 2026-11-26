@@ -42,7 +42,7 @@ function refreshTemplate() {
     .finally(() => { vtRefreshing = null; }));
 }
 async function netTile(type, z, x, y, signal) {
-  if (!navigator.onLine) throw new Error("Offline"); // answer at once instead of waiting for a request that can't succeed
+  if (!online()) throw new Error("Offline"); // answer at once instead of waiting for a request that can't succeed
   if (type === "dem") {
     const r = await fetchTimeout(DEM_URL(z, x, y), { signal });
     if (!r.ok) throw new Error("Elevation server " + r.status);
@@ -154,6 +154,7 @@ const Offline = (() => {
           try {
             let buf = refresh ? null : await DB.get("tiles", key);
             if (!buf) {
+              if (dataBlocked) { fatal = new Error("Mobile data is off"); break; }
               for (let attempt = 1; ; attempt++) {
                 try { buf = await netTile(type, +z, +x, +y, abort.signal); break; }
                 catch (e) { if (attempt >= 3 || abort.signal.aborted) throw e; await new Promise(r => setTimeout(r, 1500 * attempt)); }
@@ -164,6 +165,7 @@ const Offline = (() => {
           } catch (e) { if (!abort.signal.aborted) failed++; }
           job.done++;
           if (job.done % 20 === 0) changed();
+          if (dataBlocked && failed) fatal = fatal || new Error("Mobile data is off");
           if (failed > 40 && failed > job.done / 2) fatal = fatal || new Error("Lost the internet connection");
         }
       };

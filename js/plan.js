@@ -101,7 +101,7 @@ const Plan = (() => {
     } catch (e) {
       if (mine !== token) return;
       state.busy = false;
-      state.error = !navigator.onLine ? "Directions need internet. Measure distance works offline." : e.name === "AbortError" || e.name === "TypeError" ? "The directions server didn't answer. Try again." : e.message;
+      state.error = !online() ? needsNet("Directions need internet.") + " Measure distance works offline." : e.name === "AbortError" || e.name === "TypeError" ? "The directions server didn't answer. Try again." : e.message;
       changed();
     }
   }

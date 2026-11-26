@@ -231,10 +231,30 @@ function renderGPS() {
   box.innerHTML = p ? `<div><b>${fmtHeight(p.altitude)}</b><span>Altitude</span></div><div><b>${fmtSpeed(p.speed)}</b><span>Speed</span></div><div><b>±${fmtHeight(p.accuracy)}</b><span>Accuracy</span></div>` : `<div class="small">${esc(GPS.state.error)}</div>`;
 }
 function renderChip() {
-  const text = [map ? Packs.hint(map) : "", navigator.onLine ? "" : "Offline: showing downloaded maps", SETTINGS.routes && /Loading|Couldn't|busy/.test(Routes.status()) ? Routes.status() : "",
+  const text = [map ? Packs.hint(map) : "", online() ? "" : dataBlocked ? "Mobile data off: showing downloaded maps" : "Offline: showing downloaded maps", SETTINGS.routes && /Loading|Couldn't|busy/.test(Routes.status()) ? Routes.status() : "",
     Offline.job() ? `Downloading ${Math.round(Offline.job().done / Offline.job().total * 100)}%` : ""].filter(Boolean).join(" · ");
   $("#chip").textContent = text; $("#chip").hidden = !text;
 }
+
+/* ---- internet and mobile data ---- */
+function dataControls() {
+  if (!canSwitchData()) return NATIVE ? '<p class="muted small">This switch needs the newest Trail Map app file. Ask Claude for it.</p>' : "";
+  return `<label class="switch"><input type="checkbox" data-set="mobile" ${NATIVE.mobileData() ? "checked" : ""}> <span>Use mobile data</span></label>
+    ${dataBlocked ? '<p class="warn small" role="status">You are on mobile data, so Trail Map is staying offline.</p>' : ""}
+    <p class="muted small">When off, Trail Map uses the internet on Wi-Fi only. On mobile data you still have GPS, recording, downloaded and imported maps and everything saved. Search, directions, new map areas and updates wait for Wi-Fi.</p>`;
+}
+/* Wi-Fi or mobile data came or went, or the switch was changed. */
+function connectionChanged() {
+  renderChip(); Routes.refresh(); Barriers.schedule(); Packs.apply(map);
+  if (online()) { // ask again for the map pieces that couldn't be fetched
+    for (const id of ["openmaptiles", "hills", "hills3d", "contours", "satellite", "overview", "slope", "walk"]) {
+      const source = map.getSource(id); if (source && source.setTiles) source.setTiles(source.serialize().tiles);
+    }
+  }
+  map.triggerRepaint();
+  if (!$("#page").hidden) renderSettings();
+}
+window.onNetwork = blocked => { dataBlocked = blocked; if (map) connectionChanged(); };
 
 /* ---- Settings page ---- */
 let settingsSeq = 0;
@@ -253,6 +273,7 @@ async function renderSettings() {
   };
   const seg = (key, options) => `<div class="seg" role="group">${options.map(([v, l]) => `<button data-act="pref" data-k="${key}" data-v="${v}" aria-pressed="${SETTINGS[key] === v}">${l}</button>`).join("")}</div>`;
   $("#page-body").innerHTML = `
+    ${NATIVE ? `<section class="panel"><h2>Mobile data</h2>${dataControls()}</section>` : ""}
     <section class="panel"><h2>Offline maps</h2><p class="small">Download places before you go, especially ones with poor signal. The map, footpaths, contours, hills and walking routes then work with no internet. Delete areas you rarely visit to free up space.</p>
       ${regions.map(area).join("") || '<p class="muted small">No maps downloaded yet.</p>'}
       <button class="btn primary" data-act="area-new" ${job ? "disabled" : ""}>Download a new area</button>
@@ -291,7 +312,7 @@ function openArea() {
 }
 function closeArea() { if ($("#area").hidden) return; $("#area").hidden = true; $("#search").hidden = false; floating(); }
 async function startDownload(region, refresh) {
-  if (!navigator.onLine) { toast("Connect to the internet to download"); return; }
+  if (!online()) { toast(needsNet("Connect to the internet to download")); return; }
   const done = await Offline.download(region, refresh);
   if (await Offline.list().then(l => l.some(r => r.id === done.id))) toast(done.complete ? `${done.name} is ready to use offline` : `${done.name}: ${done.error}`);
 }
@@ -309,7 +330,7 @@ async function runSearch(text) {
   const show = () => { if (seq === searchSeq && UI.data === data) renderSheet(); };
   data.items = local.concat((await Routes.search(text)).map(r => ({ name: r.name, detail: "Walking route saved on this phone", route: r }))); show();
   try { data.items = data.items.concat(await searchPlaces(text)); }
-  catch (e) { data.error = navigator.onLine ? "Place search didn't answer. Try again." : "Offline: only saved places and routes can be searched."; }
+  catch (e) { data.error = online() ? "Place search didn't answer. Try again." : (dataBlocked ? "Mobile data is off" : "Offline") + ": only saved places and routes can be searched."; }
   data.loading = false; show();
 }
 
@@ -420,7 +441,7 @@ const ACTIONS = {
   "area-cancel": () => { closeArea(); goTab("settings"); },
   "area-download": async () => {
     const bbox = areaBox(); if (areaEstimate(bbox).tiles > MAX_TILES) return;
-    if (!navigator.onLine) { toast("Connect to the internet to download"); return; }
+    if (!online()) { toast(needsNet("Connect to the internet to download")); return; }
     if (Offline.job()) { toast("Another download is running"); return; }
     const name = $("#area-name").value.trim() || "Map " + new Date().toLocaleDateString("en-GB");
     const region = { id: uid(), name, bbox, created: Date.now(), bytes: 0, complete: false };
@@ -452,6 +473,7 @@ document.addEventListener("click", e => {
 });
 document.addEventListener("change", e => {
   const k = e.target.dataset && e.target.dataset.set; if (!k || !map) return;
+  if (k === "mobile") { NATIVE.setMobileData(e.target.checked); dataBlocked = NATIVE.dataBlocked(); connectionChanged(); return; }
   SETTINGS[k] = e.target.checked; saveSettings();
   if (k === "awake") keepAwake(SETTINGS.awake || !!Offline.job()); else { applyLayers(); Routes.refresh(); Barriers.schedule(); }
 });
@@ -533,7 +555,9 @@ function followRoutes() { if (Date.now() - lastFollow > 20000) { lastFollow = Da
   Routes.onChange(() => { renderChip(); if (UI.sheet === "routes") { renderSheet(); floating(); } });
   Plan.onChange(() => { if (UI.sheet === "directions") { const open = $("#sheet-body details") && $("#sheet-body details").open; renderSheet(); if (open && $("#sheet-body details")) $("#sheet-body details").open = true; floating(); } });
   Offline.onChange(() => { renderChip(); if (!$("#page").hidden) renderSettings(); });
-  addEventListener("online", () => { renderChip(); Routes.refresh(); map.triggerRepaint(); });
+  // the phone may have changed network while this page was starting
+  if (canSwitchData()) dataBlocked = NATIVE.dataBlocked();
+  addEventListener("online", () => { if (canSwitchData()) dataBlocked = NATIVE.dataBlocked(); connectionChanged(); });
   addEventListener("offline", () => { renderChip(); });
   addEventListener("resize", () => { floating(); areaSize(); });
   Packs.onChange(() => { applyLayers(); if (!$("#page").hidden) renderSettings(); });

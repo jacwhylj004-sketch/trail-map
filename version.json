@@ -1,6 +1,6 @@
 {
-    "build":  9,
-    "name":  "1.8",
-    "shell":  5,
-    "notes":  "Fewer, clearer town names on zoomed-out imported maps."
+    "build":  10,
+    "name":  "1.9",
+    "shell":  6,
+    "notes":  "New switch in Settings to stop Trail Map using mobile data. Install the new app file to get it."
 }

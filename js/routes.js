@@ -89,16 +89,16 @@ const Routes = (() => {
   async function refresh() {
     if (!map) return;
     if (!SETTINGS.routes) { overview(false); return; }
-    if (map.getZoom() < 9.5) { overview(true); status = navigator.onLine ? "Showing an overview. Zoom in to tap a route and see details." : "Zoom in to see saved walking routes."; setData("routes", EMPTY); index = new Map(); changed(); return; }
+    if (map.getZoom() < 9.5) { overview(true); status = online() ? "Showing an overview. Zoom in to tap a route and see details." : "Zoom in to see saved walking routes."; setData("routes", EMPTY); index = new Map(); changed(); return; }
     if (busy) { again = true; return; }
     busy = true;
     try {
       const cells = visibleCells(), have = await Promise.all(cells.map(c => read(key(c))));
       render(cells);
       overview(have.some(v => !v)); // show the quick picture of routes until the details arrive
-      const missing = cells.filter((c, i) => !have[i] || (navigator.onLine && Date.now() - have[i].t > MAX_AGE));
+      const missing = cells.filter((c, i) => !have[i] || (online() && Date.now() - have[i].t > MAX_AGE));
       if (!missing.length) status = "";
-      else if (!navigator.onLine) status = "Offline: showing saved routes only.";
+      else if (!online()) status = "Offline: showing saved routes only.";
       else if (Date.now() < retryAt) status = "Route server busy. Trying again shortly.";
       else {
         status = "Loading walking routes…"; changed();
@@ -110,7 +110,7 @@ const Routes = (() => {
       if (again) { again = false; schedule(); }
     }
   }
-  function overview(on) { if (map.getLayer("routes-overview")) map.setLayoutProperty("routes-overview", "visibility", on && SETTINGS.routes && navigator.onLine ? "visible" : "none"); }
+  function overview(on) { if (map.getLayer("routes-overview")) map.setLayoutProperty("routes-overview", "visibility", on && SETTINGS.routes && online() ? "visible" : "none"); }
   const schedule = () => { clearTimeout(timer); timer = setTimeout(refresh, 700); };
 
   async function saveArea(bbox, force, signal) {
@@ -123,6 +123,7 @@ const Routes = (() => {
         try { await query(block, signal, 90000); break; }
         catch (e) {
           if (signal.aborted) throw e;
+          if (dataBlocked) throw new Error("Mobile data is off");
           if (attempt >= 3) throw new Error("Map saved, but the walking route server is busy. Tap Resume later.");
           await new Promise(r => setTimeout(r, 10000 * attempt));
         }

@@ -81,8 +81,8 @@ const Barriers = (() => {
         .sort((p, q) => Math.hypot(p[0] - cx, p[1] - cy) - Math.hypot(q[0] - cx, q[1] - cy)).slice(0, 9);
       const have = await Promise.all(cells.map(x => read(key(x))));
       render(cells);
-      const missing = cells.filter((x, i) => !have[i] || (navigator.onLine && Date.now() - have[i].t > MAX_AGE));
-      if (!missing.length || !navigator.onLine) return;
+      const missing = cells.filter((x, i) => !have[i] || (online() && Date.now() - have[i].t > MAX_AGE));
+      if (!missing.length || !online()) return;
       if (Date.now() < retryAt) { clearTimeout(timer); timer = setTimeout(refresh, retryAt - Date.now() + 500); return; }
       try { await query(missing); render(cells); }
       catch (e) { retryAt = Date.now() + 25000; clearTimeout(timer); timer = setTimeout(refresh, 26000); }
@@ -102,6 +102,7 @@ const Barriers = (() => {
         try { await query(block, signal, 90000); break; }
         catch (e) {
           if (signal.aborted) throw e;
+          if (dataBlocked) throw new Error("Mobile data is off");
           if (attempt >= 3) throw new Error("Map and routes saved, but the server for gates and boundaries is busy. Tap Resume later.");
           await new Promise(r => setTimeout(r, 10000 * attempt));
         }

@@ -18,18 +18,19 @@ const Update = (() => {
     state.checking = true; state.message = ""; changed();
     try {
       await loadCurrent();
-      if (navigator.onLine) {
+      if (online()) {
         const r = await fetchTimeout(SITE + "update.json?t=" + Date.now(), { cache: "no-store" }, 12000);
         if (!r.ok) throw new Error("server " + r.status);
         state.latest = r.json();
         if (asked && !available()) state.message = "You have the newest version.";
         if (!asked && available()) toast("An update is ready. Open Settings.");
-      } else if (asked) state.message = "Connect to the internet to check for updates.";
+      } else if (asked) state.message = needsNet("Connect to the internet to check for updates.");
     } catch (e) { if (asked) state.message = "Couldn't check for updates. Try again later."; }
     state.checking = false; changed();
   }
   function install() {
     if (!available() || needsApp() || state.progress) return;
+    if (dataBlocked) { state.message = NO_DATA; changed(); return; }
     if (Offline.job()) { state.message = "Wait for the map download to finish, then update."; changed(); return; }
     state.progress = { done: 0, total: state.latest.files.length }; state.message = ""; changed();
     NATIVE.installUpdate(); // the app restarts itself on the new version when this finishes

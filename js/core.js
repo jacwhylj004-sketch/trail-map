@@ -17,6 +17,14 @@ if (SETTINGS.terrain === true) SETTINGS.relief3d = "normal";
 delete SETTINGS.shade; delete SETTINGS.contours; delete SETTINGS.terrain;
 const saveSettings = () => saveJSON("tm-settings", SETTINGS);
 
+/* ---- internet. Mobile data can be switched off for this app (Settings): while that applies, behave as if offline.
+   The Android app does the blocking; the pages only need to know, so that they say why and don't keep trying. ---- */
+const canSwitchData = () => !!(NATIVE && NATIVE.setMobileData);
+let dataBlocked = canSwitchData() && NATIVE.dataBlocked();
+const online = () => navigator.onLine && !dataBlocked;
+const NO_DATA = "Mobile data is off. Connect to Wi-Fi, or turn it on in Settings.";
+const needsNet = message => dataBlocked ? NO_DATA : message;
+
 /* ---- IndexedDB: offline tiles, walking routes and downloaded areas ---- */
 const DB = (() => {
   let ready;
