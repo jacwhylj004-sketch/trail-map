@@ -182,7 +182,7 @@ const Offline = (() => {
       region.error = abort.signal.aborted ? "Stopped" : e.name === "AbortError" ? "The server took too long" : e.message || "Download failed";
     } finally {
       region.bytes = Math.max(bytes, region.complete ? 0 : region.bytes || 0);
-      const removed = job.removed; job = null; keepAwake(SETTINGS.awake);
+      const removed = job.removed; job = null; keepAwake(SETTINGS.awake || Nav.active());
       if (!removed && !region.complete && region.error !== "Stopped") alertPhone("Map download didn't finish", `${region.name}: ${region.error}`);
       if (!removed) await DB.put("regions", region).catch(() => {});
       changed();
@@ -199,6 +199,7 @@ const Offline = (() => {
     for (let i = 0; i < tiles.length; i += 1000) await DB.delMany("tiles", tiles.slice(i, i + 1000));
     if (mine) await Routes.dropArea(mine.bbox, others.map(r => r.bbox));
     if (mine) await Barriers.dropArea(mine.bbox, others.map(r => r.bbox));
+    await DB.del("cells", "idx:" + id).catch(() => {}); Finder.forget(id); // its list of places, for searching
     await DB.del("regions", id); demImages.clear(); changed();
   }
 

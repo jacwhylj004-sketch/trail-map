@@ -58,7 +58,7 @@ const walkSeconds = (dist, up) => dist / 5000 * 3600 + (up || 0) / 600 * 3600;
 
 /* ---- directions and measuring ---- */
 const Plan = (() => {
-  const state = { stops: [], mode: "foot", result: null, busy: false, error: "", measure: false };
+  const state = { stops: [], mode: "foot", result: null, busy: false, progress: "", error: "", measure: false };
   let markers = [], token = 0;
   const listeners = [];
   const changed = () => listeners.forEach(f => f());
@@ -73,53 +73,81 @@ const Plan = (() => {
     });
   }
 
+  /* Directions from the internet, which knows about one-way streets, access and so on. */
+  async function fromServer(pts, mode) {
+    const url = `https://routing.openstreetmap.de/routed-${mode}/route/v1/driving/${pts.map(p => p[0].toFixed(6) + "," + p[1].toFixed(6)).join(";")}?overview=full&geometries=geojson&steps=true`;
+    const r = await fetchTimeout(url, {}, 20000);
+    let data = null; try { data = r.json(); } catch (e) { /* not JSON */ }
+    if (data && data.code === "NoRoute") throw Object.assign(new Error("No route found between those points."), { final: true });
+    if (!data || data.code !== "Ok") throw new Error("The directions server didn't answer. Try again.");
+    const best = data.routes[0], turns = [];
+    let along = 0;
+    best.legs.forEach((leg, i) => leg.steps.forEach(s => {
+      const type = s.maneuver.type, last = i === best.legs.length - 1;
+      if (type === "arrive") turns.push({ along, dir: last ? "arrive" : "stop", text: last ? "Arrive at your destination" : "You reach a stop on your route" });
+      else if (!(type === "depart" && i)) turns.push({ along, dir: stepDir(s.maneuver), text: stepText(s) });
+      along += s.distance;
+    }));
+    return { coords: best.geometry.coordinates, distance: best.distance, duration: best.duration, turns, from: "net" };
+  }
+  function stepDir(m) {
+    if (m.type === "depart") return "depart";
+    if (m.type === "roundabout" || m.type === "rotary") return "round";
+    if (m.modifier === "uturn") return "uturn";
+    return (m.modifier || "straight").replace(" ", "-");
+  }
+  function stepText(s) {
+    const m = s.maneuver, name = s.name ? " onto " + s.name : "";
+    if (m.type === "depart") return "Set off" + (s.name ? " along " + s.name : "");
+    if (m.type === "roundabout" || m.type === "rotary") return "At the roundabout take exit " + (m.exit || 1) + name;
+    if (!m.modifier || m.modifier === "straight") return "Continue" + (s.name ? " on " + s.name : " straight on");
+    if (m.modifier === "uturn") return "Turn back" + name;
+    return (m.type === "fork" ? "Keep " : m.type === "merge" ? "Merge " : "Turn ") + m.modifier + name;
+  }
+  /* The instructions as a list, each with how far it is to the next. */
+  const stepList = (turns, total) => turns.map((t, i) => t.dir === "arrive" ? t.text : `${t.text} (${fmtDist((turns[i + 1] ? turns[i + 1].along : total) - t.along)})`);
+
+  /* A route through the points: from the internet when there is one, otherwise worked out on the phone. */
+  async function find(pts, mode, progress = () => {}, stale = () => false) {
+    let failed = null;
+    if (online()) {
+      try { return await fromServer(pts, mode); }
+      catch (e) { if (e.final) throw e; failed = e; }
+    }
+    try { return await Router.route(pts, mode, progress, stale); }
+    catch (e) {
+      if (failed) throw new Error("The directions server didn't answer. " + e.message);
+      throw new Error((dataBlocked ? "Mobile data is off. " : "") + e.message);
+    }
+  }
+
   async function calculate() {
-    const mine = ++token;
-    state.result = null; state.error = ""; drawMarkers(); setData("plan", EMPTY);
+    const mine = ++token, stale = () => mine !== token;
+    state.result = null; state.error = ""; state.progress = ""; drawMarkers(); setData("plan", EMPTY);
     const pts = state.stops.map(pointOf);
     if (pts.length < 2) { state.busy = false; changed(); return; }
     if (pts.some(p => !p)) { state.busy = false; state.error = "Waiting for GPS to find where you are…"; changed(); return; }
     state.busy = true; changed();
     try {
-      let coords, distance, duration, steps = [];
-      if (state.measure) { coords = pts; distance = lineLength(pts); }
-      else {
-        const url = `https://routing.openstreetmap.de/routed-${state.mode}/route/v1/driving/${pts.map(p => p[0].toFixed(6) + "," + p[1].toFixed(6)).join(";")}?overview=full&geometries=geojson&steps=true`;
-        const r = await fetchTimeout(url, {}, 25000);
-        let data = null; try { data = r.json(); } catch (e) { /* not JSON */ }
-        if (!data || data.code !== "Ok") throw new Error(data && data.code === "NoRoute" ? "No route found between those points." : "The directions server didn't answer. Try again.");
-        const best = data.routes[0]; coords = best.geometry.coordinates; distance = best.distance; duration = best.duration;
-        steps = best.legs.flatMap(l => l.steps).map(stepText).filter(Boolean);
-      }
-      if (mine !== token) return;
-      setData("plan", lineFeature(coords));
-      state.result = { coords, distance, duration, steps, profile: undefined };
+      const found = state.measure ? { coords: pts, distance: lineLength(pts), turns: [] }
+        : await find(pts, state.mode, words => { if (!stale()) { state.progress = words; changed(); } }, stale);
+      if (stale()) return;
+      setData("plan", lineFeature(found.coords));
+      state.result = Object.assign(found, { mode: state.mode, steps: stepList(found.turns, found.distance), profile: undefined });
       state.busy = false; changed();
-      const profile = await profileOf(coords);
-      if (mine !== token) return;
+      const profile = await profileOf(found.coords);
+      if (stale()) return;
       state.result.profile = profile; changed();
     } catch (e) {
-      if (mine !== token) return;
-      state.busy = false;
-      state.error = !online() ? needsNet("Directions need internet.") + " Measure distance works offline." : e.name === "AbortError" || e.name === "TypeError" ? "The directions server didn't answer. Try again." : e.message;
+      if (stale()) return;
+      state.busy = false; state.error = e.message + (!online() ? " Measure distance also works without internet." : "");
       changed();
     }
-  }
-  function stepText(s) {
-    const m = s.maneuver, name = s.name ? " onto " + s.name : "";
-    let t;
-    if (m.type === "depart") t = "Set off" + (s.name ? " along " + s.name : "");
-    else if (m.type === "arrive") return "Arrive at your destination";
-    else if (m.type === "roundabout" || m.type === "rotary") t = "At the roundabout take exit " + (m.exit || 1) + name;
-    else if (!m.modifier || m.modifier === "straight") t = "Continue" + (s.name ? " on " + s.name : " straight on");
-    else if (m.modifier === "uturn") t = "Turn back" + name;
-    else t = (m.type === "fork" ? "Keep " : m.type === "merge" ? "Merge " : "Turn ") + m.modifier + name;
-    return `${t} (${fmtDist(s.distance)})`;
   }
   function clear() { token++; state.stops = []; state.result = null; state.error = ""; state.busy = false; state.measure = false; drawMarkers(); setData("plan", EMPTY); changed(); }
 
   return {
-    state, calculate, clear, onChange: f => listeners.push(f),
+    state, calculate, clear, find, onChange: f => listeners.push(f),
     add(stop) { state.stops.push(stop); calculate(); },
     removeAt(i) { state.stops.splice(i, 1); calculate(); },
     reverse() { state.stops.reverse(); calculate(); },
@@ -129,7 +157,7 @@ const Plan = (() => {
     showSaved(r) {
       clear(); state.mode = r.mode === "measure" ? state.mode : r.mode;
       setData("plan", lineFeature(r.coords));
-      state.result = { coords: r.coords, distance: r.distance, duration: r.duration, steps: r.steps || [], profile: r.profile, saved: r };
+      state.result = { coords: r.coords, distance: r.distance, duration: r.duration, steps: r.steps || [], turns: r.turns || [], mode: r.mode, profile: r.profile, saved: r };
       state.measure = r.mode === "measure"; changed();
     }
   };

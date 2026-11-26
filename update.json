@@ -1,23 +1,23 @@
 {
-    "build":  13,
-    "name":  "1.12",
+    "build":  14,
+    "name":  "1.13",
     "shell":  8,
-    "notes":  "New in Settings: a Notifications section with a Send test notification button, to check your phone lets Trail Map\u0027s warnings through.",
+    "notes":  "Search now suggests places as you type, with or without internet. Directions work offline too, and the new Start button gives turn-by-turn navigation with arrival time. Spoken directions need the 1.13 app file.",
     "files":  [
                   {
                       "path":  "app.css",
-                      "sha256":  "20c6499edff7d975c3f4bf62271469b5d8e64a885857b7456e6beaa0ba530e1a",
-                      "size":  13266
+                      "sha256":  "cd8e169cb5e55760ac839e2b6869627adbb84ac47de6536962a8c376c536ca89",
+                      "size":  15349
                   },
                   {
                       "path":  "index.html",
-                      "sha256":  "1950701b668648dcbeda2127498085c8be770478edbae08411265a5c4e9ae71a",
-                      "size":  3895
+                      "sha256":  "5f3a0b1784063b46748fd5380ddf0cb8cea67c0444c007eca9613dbeb8d7f598",
+                      "size":  4570
                   },
                   {
                       "path":  "version.json",
-                      "sha256":  "c3f040026c109b2ac8c36f8fe249afcbc44447b30c16429c61136ba5ece0af05",
-                      "size":  219
+                      "sha256":  "3505ca0ba1309dc88bc4f9fe73bdb514a0876ffbdb2c760d1399d6b1c42a6104",
+                      "size":  291
                   },
                   {
                       "path":  "js/back.js",
@@ -35,6 +35,11 @@
                       "size":  10331
                   },
                   {
+                      "path":  "js/find.js",
+                      "sha256":  "438944c5eb51f2ca46f7d37138e1c6cffccf7dc02f223e109f3d97c7d3a7ebea",
+                      "size":  12736
+                  },
+                  {
                       "path":  "js/graphs.js",
                       "sha256":  "91884ea8b185a39a84ed88a64e586bd225d394bdc60fcce8876d36dbfa7892d4",
                       "size":  8656
@@ -45,9 +50,19 @@
                       "size":  19670
                   },
                   {
+                      "path":  "js/mvt.js",
+                      "sha256":  "b0e5a045d3be434451fde300d45dadd32c34198152c45867e2b58090bcb4c398",
+                      "size":  3341
+                  },
+                  {
+                      "path":  "js/navigate.js",
+                      "sha256":  "d10197d9d3185ece015068329fa457b47a2885116c219fa555eff5cafee7fdb2",
+                      "size":  14448
+                  },
+                  {
                       "path":  "js/offline.js",
-                      "sha256":  "5f1c12979ad72babafc6ab5d825ee534ee0986956980f395c3e7bb3baf7b475b",
-                      "size":  12097
+                      "sha256":  "c6c872cabdb0b5b4052f202fba1c8c51c08c2f7274fa586633e7cf7e56f3e49a",
+                      "size":  12225
                   },
                   {
                       "path":  "js/osmap.js",
@@ -56,8 +71,8 @@
                   },
                   {
                       "path":  "js/packs.js",
-                      "sha256":  "45eaac02650f51d1a39919468e62bdd5beb6ed54c8dd76f4f2a5fbd417feec0b",
-                      "size":  15344
+                      "sha256":  "6c09337af390283925ba2b3a4e22898ee3b7f74e30f3ad0bd041b9681642d412",
+                      "size":  15837
                   },
                   {
                       "path":  "js/paths.js",
@@ -66,13 +81,18 @@
                   },
                   {
                       "path":  "js/plan.js",
-                      "sha256":  "31bbdff8b2df3869fef2d1308db4d86e4c186cfb2911963dfb4d853a317c20f5",
-                      "size":  7785
+                      "sha256":  "81f5a36acc4e8cfc50ee23060b60af44d30c0fb2a4ce4fd99417b12b2f77653b",
+                      "size":  9415
                   },
                   {
                       "path":  "js/record.js",
                       "sha256":  "b11d59fb6aae0d5c283b3999879d05604224b8967e786477c7889b779dbf9bbc",
                       "size":  6608
+                  },
+                  {
+                      "path":  "js/router.js",
+                      "sha256":  "5648fef2440833e4e8c93e779fed8263cc81a9da5e6f87026b0b032e0ec63b62",
+                      "size":  24591
                   },
                   {
                       "path":  "js/routes.js",
@@ -81,8 +101,8 @@
                   },
                   {
                       "path":  "js/ui.js",
-                      "sha256":  "b6f93dc9ef59a34a296bd25950cf81379a84952b728e765c354e15359aa104fe",
-                      "size":  51559
+                      "sha256":  "387ee017c3070ada84406ba022bf59552bbb83ddc9fe96dba8259760d9bf95f8",
+                      "size":  56121
                   },
                   {
                       "path":  "js/update.js",

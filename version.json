@@ -1,6 +1,6 @@
 {
-    "build":  13,
-    "name":  "1.12",
+    "build":  14,
+    "name":  "1.13",
     "shell":  8,
-    "notes":  "New in Settings: a Notifications section with a Send test notification button, to check your phone lets Trail Map\u0027s warnings through."
+    "notes":  "Search now suggests places as you type, with or without internet. Directions work offline too, and the new Start button gives turn-by-turn navigation with arrival time. Spoken directions need the 1.13 app file."
 }

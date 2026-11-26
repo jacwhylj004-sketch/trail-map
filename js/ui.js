@@ -159,12 +159,16 @@ const SHEETS = {
     const s = Plan.state, r = s.result;
     const stops = s.stops.map((p, i) => `<div class="item"><span class="stop-mark">${String.fromCharCode(65 + (i % 26))}</span><span class="grow">${esc(p.name)}</span><button class="icon-btn" data-act="stop-remove" data-i="${i}" aria-label="Remove stop">${ICON.close}</button></div>`).join("");
     let out = s.measure ? "" : `<div class="seg" role="group" aria-label="Travel by">${[["foot", "Walk"], ["bike", "Cycle"], ["car", "Drive"]].map(([v, l]) => `<button data-act="mode" data-v="${v}" aria-pressed="${s.mode === v}">${l}</button>`).join("")}</div>`;
+    const top = out.length; // the time and the Start button go here, where they show without scrolling
     if (!(r && r.saved)) out += stops + `<p class="muted small">${s.measure ? "Tap the map to add points. Distances are in straight lines between them." : s.stops.length < 2 ? "Tap the map to add your start, stops and finish, or search for a place." : "Tap the map to add another stop."}</p>
       <div class="row">${GPS.state.pos && !s.stops.some(p => p.me) ? '<button class="btn" data-act="stop-me">Add my location</button>' : ""}${s.stops.length > 1 ? '<button class="btn" data-act="stop-reverse">Reverse</button>' : ""}${s.stops.length ? '<button class="btn" data-act="plan-clear">Clear</button>' : ""}<button class="btn" data-act="measure">${s.measure ? "Follow paths instead" : "Measure distance"}</button></div>`;
-    if (s.busy) out += '<p class="muted">Finding the way…</p>';
+    if (s.busy) out += `<p class="muted">${esc(s.progress || "Finding the way…")}</p>`;
     if (s.error) out += `<p class="warn">${esc(s.error)}</p>`;
     if (r) {
       const p = r.profile, time = s.mode === "foot" && !s.measure ? walkSeconds(r.distance, p ? p.up : 0) : r.duration;
+      if (!s.measure && time) out = out.slice(0, top) + `<div class="row summary"><div class="grow"><b>${fmtTime(time)}</b> <span>(${fmtDist(r.distance)})<br>Arrive about ${clockAt(time)} if you leave now</span></div><button class="btn primary go" data-act="nav-start">${ICON.heading}Start</button></div>` + out.slice(top);
+      if (r.from && r.from !== "net") out += `<p class="muted small">Worked out on your phone from your ${r.from === "pack" ? "imported map" : "downloaded map"}. It doesn’t know about closures${s.mode === "foot" ? " or rights of way: check paths are open to you" : s.mode === "car" ? " or turn restrictions: follow road signs" : " or cycling rules: follow signs"}.</p>`;
+      if (r.gaps && Math.max(...r.gaps) > 60) out += `<p class="warn small">The line starts or ends ${fmtDist(Math.max(...r.gaps))} from a point you chose: there is no mapped way closer.</p>`;
       out += `<div class="stats">${stat("Distance", fmtDist(r.distance))}${s.measure ? stat("Walking time", fmtTime(walkSeconds(r.distance, p ? p.up : 0))) : stat("Time", fmtTime(time))}${stat("Climb / drop", p ? fmtHeight(p.up) + " / " + fmtHeight(p.down) : p === undefined ? "…" : "–")}</div>
         ${p ? profileSVG(p) : p === null ? '<p class="muted small">Height data isn’t available here while offline.</p>' : ""}
         <div class="row">${r.saved ? '<button class="btn danger" data-act="walk-delete">Delete this walk</button>' : '<button class="btn primary" data-act="walk-save">Save this walk</button>'}<button class="btn" data-act="plan-fit">Show whole route</button>${r.saved ? '<button class="btn" data-act="plan-clear">Remove from map</button>' : ""}</div>
@@ -201,8 +205,13 @@ const SHEETS = {
     return ["Saved", `<h3>Recorded walks</h3>${tracks || '<p class="muted small">Tap the record button on the map to record a walk.</p>'}<h3>Planned walks</h3>${walks || '<p class="muted small">Plan a walk in Directions, then tap Save this walk. Saved walks work offline.</p>'}<h3>Places</h3>${places || '<p class="muted small">Press and hold the map, then tap Save place.</p>'}`];
   },
   search(s) {
-    const item = (r, i) => `<button class="item" data-act="result" data-i="${i}"><span class="grow">${esc(r.name)}<small>${esc(r.detail || "")}</small></span></button>`;
-    return ["Search results", s.items.map(item).join("") + (s.loading ? '<p class="muted">Searching…</p>' : "") + (s.error ? `<p class="warn">${esc(s.error)}</p>` : "") + (!s.loading && !s.error && !s.items.length ? '<p class="muted">Nothing found.</p>' : "")];
+    const item = (r, i) => `<button class="item" data-act="result" data-i="${i}"><span class="grow">${esc(r.name)}<small>${esc(r.detail || "")}</small></span>${r.away == null ? "" : `<span class="away">${esc(fmtDist(r.away))}</span>`}</button>`;
+    const status = s.loading ? "Searching the internet…" : Finder.status();
+    let note = "";
+    if (!s.loading && !s.items.length) note = status ? "" : !online() && !Finder.covered() ? "Nothing found. To search without internet, download an area or import a map first." : s.typing && online() ? "Nothing on this phone yet. Tap the magnifying glass to search the internet." : "Nothing found.";
+    else if (s.typing && online()) note = "Tap the magnifying glass to search the internet too.";
+    if (!online() && !s.typing && s.items.length) note = (dataBlocked ? "Mobile data is off" : "Offline") + ": showing places from the maps on your phone.";
+    return [s.typing ? "Suggestions" : "Search results", (status ? `<p class="muted small" role="status">${esc(status)}</p>` : "") + (s.error ? `<p class="warn small">${esc(s.error)}</p>` : "") + s.items.map(item).join("") + (note ? `<p class="muted small">${note}</p>` : "")];
   }
 };
 function recStats() {
@@ -211,6 +220,7 @@ function recStats() {
   return stat("Distance", fmtDist(f.distance)) + stat("Time", clock(f.elapsed)) + stat("Moving", clock(f.moving)) + stat("Climb (GPS, rough)", fmtHeight(f.climb)) + stat("Moving speed", f.moving > 30 ? fmtSpeed(f.distance / f.moving) : "–");
 }
 const showTrack = t => { Plan.clear(); setData("plan", { type: "Feature", properties: {}, geometry: { type: "MultiLineString", coordinates: t.lines } }); openSheet("trackview", t); fit(t.lines.flat()); };
+const clockAt = seconds => new Date(Date.now() + seconds * 1000).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 const tagDistance = d => /^\s*[\d.]+\s*$/.test(d) ? fmtDist(parseFloat(d) * 1000) : d;
 
 function showCard(c) {
@@ -326,22 +336,48 @@ async function startDownload(region, refresh) {
   if (await Offline.list().then(l => l.some(r => r.id === done.id))) toast(done.complete ? `${done.name} is ready to use offline` : `${done.name}: ${done.error}`);
 }
 
-/* ---- search ---- */
-let searchSeq = 0;
-async function runSearch(text) {
-  const seq = ++searchSeq;
-  const here = parseCoords(text);
-  if (here) { GPS.setFollow("off"); map.flyTo({ center: here, zoom: 15 }); showCard({ name: OSGB.parse(text) ? "Grid reference " + text.trim().toUpperCase() : "Coordinates", ll: here }); return; }
-  const t = text.toLowerCase();
-  const local = SAVED.places.filter(p => p.name.toLowerCase().includes(t)).map(p => ({ name: p.name, detail: "Saved place", ll: p.ll, savedId: p.id }));
-  const data = { items: local, loading: true, error: "" };
-  openSheet("search", data);
-  const show = () => { if (seq === searchSeq && UI.data === data) renderSheet(); };
-  data.items = local.concat((await Routes.search(text)).map(r => ({ name: r.name, detail: "Walking route saved on this phone", route: r }))); show();
-  try { data.items = data.items.concat(await searchPlaces(text)); }
-  catch (e) { data.error = online() ? "Place search didn't answer. Try again." : (dataBlocked ? "Mobile data is off" : "Offline") + ": only saved places and routes can be searched."; }
-  data.loading = false; show();
+/* ---- search ----
+   As you type: places from the maps on the phone. On pressing search: the internet too, when there is one. (The
+   free internet search doesn't allow searching on every letter.) */
+let searchSeq = 0, typingTimer = null, search = null; // search: what the results panel is showing
+const here = () => { const c = map.getCenter().toArray(), p = GPS.state.pos; return p && haversine(p.ll, c) < 20000 ? p.ll : c; };
+/* Where to read an imported map in detail: round what you are looking at, and round you. */
+function centres() { const c = map.getCenter().toArray(), p = GPS.state.pos; return p && haversine(p.ll, c) > 3000 ? [c, p.ll] : [c]; }
+
+function gather() {
+  const t = search.text.toLowerCase(), pos = GPS.state.pos;
+  const saved = SAVED.places.filter(p => p.name.toLowerCase().includes(t)).map(p => ({ name: p.name, detail: "Saved place", ll: p.ll, savedId: p.id }));
+  const phone = Finder.match(search.text, here()).map(r => ({ name: r.name, detail: r.kind[0].toUpperCase() + r.kind.slice(1), ll: r.ll }));
+  const web = search.web || [];
+  const same = (a, b) => a.name.toLowerCase() === b.name.toLowerCase() && haversine(a.ll, b.ll) < 400;
+  /* places near where you are looking come before ones with the same name far away */
+  const local = phone.filter(r => !web.some(w => same(w, r)) && !saved.some(w => same(w, r))), from = here(), close = r => haversine(from, r.ll) < 25000;
+  search.items = [...saved, ...search.routes, ...web.filter(close), ...local.filter(close).slice(0, search.web ? 8 : 25), ...web.filter(r => !close(r)), ...local.filter(r => !close(r) || (search.web && local.filter(close).indexOf(r) >= 8))]
+    .map(r => Object.assign(r, { away: r.ll && pos ? haversine(pos.ll, r.ll) : null }));
 }
+function showSearch() {
+  if (!search || UI.sheet !== "search" || UI.data !== search) return;
+  gather(); const top = $("#sheet-body").scrollTop; renderSheet(); $("#sheet-body").scrollTop = top; floating();
+}
+async function runSearch(text, typing) {
+  const seq = ++searchSeq; clearTimeout(typingTimer);
+  const coords = parseCoords(text);
+  if (coords) { if (typing) return; GPS.setFollow("off"); map.flyTo({ center: coords, zoom: 15 }); showCard({ name: OSGB.parse(text) ? "Grid reference " + text.trim().toUpperCase() : "Coordinates", ll: coords }); return; }
+  const mine = search = { text, typing, items: [], routes: [], web: null, loading: !typing && online(), error: "" };
+  const current = () => seq === searchSeq && search === mine;
+  Finder.prepare(centres());
+  gather(); openSheet("search", mine);
+  mine.routes = (await Routes.search(text)).map(r => ({ name: r.name, detail: "Walking route saved on this phone", route: r }));
+  if (!current()) return;
+  showSearch();
+  if (typing || !online()) return;
+  try { mine.web = await searchPlaces(text); }
+  catch (e) { if (online()) mine.error = "The internet search didn't answer. Showing places from the maps on your phone."; }
+  mine.loading = false; if (current()) showSearch();
+}
+/* More of the phone's maps have been read: look again, but not so often that the list jumps about under your finger. */
+let listing = null;
+Finder.onChange(() => { if (listing) return; listing = setTimeout(() => { listing = null; showSearch(); }, 600); });
 
 /* ---- sharing ---- */
 async function share(name, ll) {
@@ -421,7 +457,7 @@ const ACTIONS = {
     const last = s.stops[s.stops.length - 1];
     const name = await dialog({ title: "Save walk", input: s.measure ? "Measured walk" : "Walk to " + (last ? last.name : "…"), yes: "Save" });
     if (!name || s.result !== r) return;
-    const saved = { id: uid(), name: name.slice(0, 80), mode: s.measure ? "measure" : s.mode, coords: r.coords, distance: r.distance, duration: r.duration, steps: r.steps, profile: r.profile || null };
+    const saved = { id: uid(), name: name.slice(0, 80), mode: s.measure ? "measure" : s.mode, coords: r.coords, distance: r.distance, duration: r.duration, steps: r.steps, profile: r.profile || null, turns: r.turns };
     SAVED.routes.unshift(saved); persistSaved(); r.saved = saved; renderSheet(); toast("Walk saved. Download its area to see the map offline.");
   },
   "walk-delete": async () => { const r = Plan.state.result && Plan.state.result.saved; if (r && await dialog({ title: "Delete saved walk?", text: r.name, yes: "Delete" })) { SAVED.routes = SAVED.routes.filter(x => x.id !== r.id); persistSaved(); Plan.clear(); goTab("saved"); } },
@@ -440,7 +476,11 @@ const ACTIONS = {
     if (r.box && haversine([r.box[0], r.box[1]], [r.box[2], r.box[3]]) > 3000) map.fitBounds([[r.box[0], r.box[1]], [r.box[2], r.box[3]]], { padding: 60, maxZoom: 15 }); else map.flyTo({ center: r.ll, zoom: 15 });
     showCard({ name: r.name, detail: r.savedId ? "" : r.detail, ll: r.ll, savedId: r.savedId });
   },
-  "search-clear": () => { $("#q").value = ""; $("#search-x").hidden = true; if (UI.sheet === "search") closeSheet(); },
+  "nav-start": () => Nav.start(),
+  "nav-exit": () => Nav.stop(),
+  "nav-view": () => Nav.view(),
+  "nav-voice": () => Nav.voice(),
+  "search-clear": () => { searchSeq++; clearTimeout(typingTimer); $("#q").value = ""; $("#search-x").hidden = true; if (UI.sheet === "search") closeSheet(); },
   pref: d => {
     SETTINGS[d.k] = d.v; saveSettings();
     if (d.k === "theme") applyTheme();
@@ -485,10 +525,15 @@ document.addEventListener("change", e => {
   const k = e.target.dataset && e.target.dataset.set; if (!k || !map) return;
   if (k === "mobile") { NATIVE.setMobileData(e.target.checked); dataBlocked = NATIVE.dataBlocked(); connectionChanged(); return; }
   SETTINGS[k] = e.target.checked; saveSettings();
-  if (k === "awake") keepAwake(SETTINGS.awake || !!Offline.job()); else { applyLayers(); Routes.refresh(); Barriers.schedule(); }
+  if (k === "awake") keepAwake(SETTINGS.awake || !!Offline.job() || Nav.active()); else { applyLayers(); Routes.refresh(); Barriers.schedule(); }
 });
-$("#search").addEventListener("submit", e => { e.preventDefault(); const t = $("#q").value.trim(); if (t && map) { $("#q").blur(); runSearch(t); } });
-$("#q").addEventListener("input", () => { $("#search-x").hidden = !$("#q").value; });
+$("#search").addEventListener("submit", e => { e.preventDefault(); const t = $("#q").value.trim(); if (t && map) { $("#q").blur(); runSearch(t, false); } });
+$("#q").addEventListener("input", () => {
+  const t = $("#q").value.trim(); $("#search-x").hidden = !$("#q").value; if (!map) return;
+  clearTimeout(typingTimer);
+  if (t.length < 2) { searchSeq++; if (UI.sheet === "search") closeSheet(); return; }
+  typingTimer = setTimeout(() => runSearch(t, true), 300);
+});
 
 /* ---- theme and Android back button ---- */
 const darkQuery = matchMedia("(prefers-color-scheme: dark)");
@@ -502,6 +547,7 @@ darkQuery.addEventListener("change", applyTheme);
 window.applyTheme = applyTheme;
 window.appBack = () => {
   if (!$("#dialog").hidden) { dialogDone && dialogDone(null); return true; }
+  if (Nav.active()) { Nav.ask(); return true; }
   if (!$("#area").hidden) { closeArea(); goTab("settings"); return true; }
   if (UI.sheet === "trackview") { openSheet("saved"); UI.tab = "saved"; nav(); return true; }
   if (UI.sheet === "route" || (UI.sheet === "card" && UI.tab === "saved")) { openSheet(UI.tab === "saved" ? "saved" : "routes"); return true; }
@@ -513,7 +559,7 @@ window.appBack = () => {
 function wireMap() {
   const at = (point, layers, r = 8) => map.queryRenderedFeatures([[point.x - r, point.y - r], [point.x + r, point.y + r]], { layers: layers.filter(l => map.getLayer(l)) });
   let held = 0;
-  const hold = ll => { held = Date.now(); if (!$("#area").hidden) return; if (UI.tab !== "map") { UI.tab = "map"; nav(); } showCard({ name: "Dropped pin", ll }); };
+  const hold = ll => { held = Date.now(); if (!$("#area").hidden || Nav.active()) return; if (UI.tab !== "map") { UI.tab = "map"; nav(); } showCard({ name: "Dropped pin", ll }); };
   map.on("contextmenu", e => hold(e.lngLat.toArray()));
   // press and hold, for touch screens that don't send "contextmenu"
   let timer = null, start = null;
@@ -522,7 +568,7 @@ function wireMap() {
   ["touchend", "touchcancel", "movestart"].forEach(n => map.on(n, e => { if (!e.gps) clearTimeout(timer); }));
 
   map.on("click", e => {
-    if (Date.now() - held < 800 || !$("#area").hidden) return;
+    if (Date.now() - held < 800 || !$("#area").hidden || Nav.active()) return;
     $("#q").blur();
     const ll = e.lngLat.toArray();
     if (UI.sheet === "directions") {
@@ -554,11 +600,12 @@ function followRoutes() { if (Date.now() - lastFollow > 20000) { lastFollow = Da
   $("#fab-layers").innerHTML = ICON.layers; $("#fab-north").innerHTML = ICON.north; $("#fab-rec").innerHTML = ICON.record; $("#fab-in").innerHTML = ICON.plus; $("#fab-out").innerHTML = ICON.minus;
   try { await Packs.load(); await createMap(); }
   catch (e) { map = null; toast("The map couldn't start: " + e.message); return; }
-  wireMap(); drawSaved(); renderGPS();
+  wireMap(); Nav.attach(); drawSaved(); renderGPS();
   let sheetStamp = 0;
   Back.resume();
   GPS.onChange(() => {
     renderGPS(); if (Back.active()) Back.update();
+    Nav.update();
     if (UI.sheet === "where" && Date.now() - sheetStamp > 900) { sheetStamp = Date.now(); renderSheet(); }
     if (UI.sheet === "directions" && GPS.state.pos && /Waiting for GPS/.test(Plan.state.error)) Plan.calculate();
   });

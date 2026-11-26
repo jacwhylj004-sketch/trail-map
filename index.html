@@ -24,6 +24,17 @@
   <button class="btn" data-act="back-stop">Stop</button>
 </div>
 
+<div id="nav-top" role="status" hidden>
+  <div id="nav-arrow"></div>
+  <div class="grow"><b id="nav-dist"></b><span id="nav-text"></span><small id="nav-then"></small></div>
+</div>
+<div id="nav-bottom" hidden>
+  <div class="grow"><b id="nav-time"></b><span id="nav-left"></span></div>
+  <button class="icon-btn" data-act="nav-voice" id="nav-voice" aria-label="Voice directions"></button>
+  <button class="btn" data-act="nav-view" id="nav-view">Overview</button>
+  <button class="btn stop" data-act="nav-exit">Exit</button>
+</div>
+
 <div id="fabs">
   <button class="fab small" data-act="layers" aria-label="Map layers" id="fab-layers"></button>
   <button class="fab small" data-act="north" aria-label="Point north up" id="fab-north" hidden></button>
@@ -63,7 +74,10 @@
 <script src="vendor/maplibre-gl.js"></script>
 <script src="vendor/maplibre-contour.js"></script>
 <script src="js/core.js"></script>
+<script src="js/mvt.js"></script>
 <script src="js/offline.js"></script>
+<script src="js/find.js"></script>
+<script src="js/router.js"></script>
 <script src="js/osmap.js"></script>
 <script src="js/paths.js"></script>
 <script src="js/barriers.js"></script>
@@ -75,6 +89,7 @@
 <script src="js/record.js"></script>
 <script src="js/graphs.js"></script>
 <script src="js/back.js"></script>
+<script src="js/navigate.js"></script>
 <script src="js/ui.js"></script>
 </body>
 </html>

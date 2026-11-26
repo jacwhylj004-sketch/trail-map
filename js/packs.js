@@ -35,6 +35,11 @@ const Packs = (() => {
     return new ArrayBuffer(0);
   }
 
+  /* One tile of one imported map, for searching and directions: null where it has nothing. */
+  async function raw(id, z, x, y) {
+    try { const r = await fetchTimeout(`${base(id)}${z}/${x}/${y}.pbf`, {}, 10000); return r.ok ? r.buf : null; } catch (e) { return null; }
+  }
+
   /* ---- drawing ---- */
   const rgb = c => `rgb(${c.join(",")})`;
   /* Pictures are enlarged without smoothing, so they stay sharp on the phone's fine screen. */
@@ -192,7 +197,7 @@ const Packs = (() => {
 
   /* ---- importing and deleting ---- */
   window.onPack = async msg => {
-    keepAwake(msg.bytes !== undefined || SETTINGS.awake); // a large file takes a while: don't let the phone sleep
+    keepAwake(msg.bytes !== undefined || SETTINGS.awake || Nav.active()); // a large file takes a while: don't let the phone sleep
     if (msg.bytes !== undefined) state = { busy: true, bytes: msg.bytes, error: "" };
     else if (msg.cancelled) state = { busy: false, bytes: 0, error: "" };
     else if (msg.error) { state = { busy: false, bytes: 0, error: msg.error }; toast(msg.error); alertPhone("Map import failed", msg.error); }
@@ -210,12 +215,15 @@ const Packs = (() => {
   }
 
   return {
-    load, tile, apply, panel,
+    load, tile, raw, apply, panel, list: () => list,
     /* Words for the top of the screen when zoomed too far out for the imported map to have anything to show. */
     hint: m => SETTINGS.base === "tt" && list.length && m.getZoom() < lowest() - 0.05 ? "Zoom in to see your imported map" : "",
     any: () => list.length > 0, names: () => list.map(p => p.name).join(", "), get: id => list.find(p => p.id === id),
     pick: () => native() && native().packImport(),
-    async remove(id) { native().packDelete(id); await load(); changed(); },
+    async remove(id) {
+      const gone = list.find(p => p.id === id); native().packDelete(id); await load(); changed();
+      if (gone) DB.del("cells", `idx:pack:${gone.id}:${gone.created}`).catch(() => {}); // its list of places, for searching
+    },
     tapLayers: () => ids.points,
     kind: t => KINDS[t] || "",
     onChange: f => listeners.push(f)
