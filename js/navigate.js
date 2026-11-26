@@ -160,6 +160,7 @@ const Nav = (() => {
     const on = !SETTINGS.mute && canSpeak();
     $("#nav-voice").innerHTML = SPEAKER(on); $("#nav-voice").setAttribute("aria-pressed", String(on));
     $("#nav-view").textContent = nav.follow ? "Overview" : "Re-centre";
+    $("#nav-view").classList.toggle("needed", !nav.follow); // shown even when the bars are small
   }
 
   function start() {

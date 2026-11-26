@@ -14,19 +14,28 @@
 
 <form id="search" role="search" autocomplete="off">
   <button type="button" class="icon-btn" data-act="search-clear" aria-label="Clear search" id="search-x" hidden></button>
+  <button type="button" class="icon-btn" data-act="search-hide" aria-label="Hide the search box" id="search-hide"></button>
   <input id="q" type="search" placeholder="Search places, routes or grid ref" aria-label="Search" enterkeyhint="search">
   <button type="submit" class="icon-btn" aria-label="Search" id="search-go"></button>
 </form>
-<div id="chip" hidden></div>
-<div id="back" role="status" hidden>
+<div id="tops">
+  <button id="chip" data-act="chip-close" aria-label="Close this message" hidden><span id="chip-text"></span><span id="chip-x"></span></button>
+  <div id="routebar" hidden>
+    <button id="routebar-open" data-act="route-open"><b id="routebar-title"></b><span id="routebar-detail"></span></button>
+    <button class="icon-btn" data-act="route-remove" aria-label="Remove from the map" id="routebar-x"></button>
+  </div>
+</div>
+<div id="back" role="status" data-act="back-size" hidden>
   <svg id="back-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 20l8-4.500 8 4.500z" fill="currentColor"/></svg>
   <div class="grow"><b id="back-title"></b><span id="back-detail"></span></div>
+  <span class="folder"></span>
   <button class="btn" data-act="back-stop">Stop</button>
 </div>
 
-<div id="nav-top" role="status" hidden>
+<div id="nav-top" role="status" data-act="nav-size" hidden>
   <div id="nav-arrow"></div>
   <div class="grow"><b id="nav-dist"></b><span id="nav-text"></span><small id="nav-then"></small></div>
+  <span class="folder"></span>
 </div>
 <div id="nav-bottom" hidden>
   <div class="grow"><b id="nav-time"></b><span id="nav-left"></span></div>
@@ -41,13 +50,18 @@
   <button class="fab small" data-act="zoom-in" aria-label="Zoom in" id="fab-in"></button>
   <button class="fab small" data-act="zoom-out" aria-label="Zoom out" id="fab-out"></button>
   <button class="fab small" data-act="record" aria-label="Record a walk" id="fab-rec"></button>
+  <button class="fab small" data-act="full" aria-label="Full map" id="fab-full"></button>
   <button class="fab" data-act="locate" aria-label="Show my location" id="fab-locate"></button>
 </div>
 
-<button id="gps" data-act="where" hidden></button>
+<div id="gpsbox" hidden>
+  <button id="gps" data-act="where"></button>
+  <button id="gps-hide" data-act="gps-hide" aria-label="Hide this box"></button>
+  <button id="gps-show" data-act="gps-show" aria-label="Show altitude and speed" hidden></button>
+</div>
 
 <section id="sheet" aria-live="polite" hidden>
-  <div id="sheet-head"><h2 id="sheet-title"></h2><button class="icon-btn" data-act="close" aria-label="Close" id="sheet-x"></button></div>
+  <div id="sheet-head"><div class="grow" data-act="sheet-min"><h2 id="sheet-title"></h2><span id="sheet-sub" class="muted small" hidden></span></div><button class="btn primary" id="sheet-act" hidden></button><button class="icon-btn" id="sheet-min" data-act="sheet-min"></button><button class="icon-btn" data-act="close" aria-label="Close" id="sheet-x"></button></div>
   <div id="sheet-body"></div>
 </section>
 
@@ -59,8 +73,7 @@
 <div id="area" hidden>
   <div id="area-frame"></div>
   <div id="area-panel">
-    <strong>Download this area</strong>
-    <p class="muted small">Move and zoom the map until the box covers the place you want.</p>
+    <strong>Fit the box over the area</strong>
     <input id="area-name" type="text" maxlength="60" placeholder="Name, e.g. Lake District" aria-label="Name for this offline map">
     <p id="area-size" class="small"></p>
     <div class="row end"><button class="btn" data-act="area-cancel">Cancel</button><button class="btn primary" data-act="area-download" id="area-go">Download</button></div>
@@ -91,5 +104,6 @@
 <script src="js/back.js"></script>
 <script src="js/navigate.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/space.js"></script>
 </body>
 </html>

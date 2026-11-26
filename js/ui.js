@@ -51,6 +51,7 @@ function openSheet(name, data) {
   if (UI.sheet === "route" && name !== "route") Routes.select(null);
   closeArea();
   UI.sheet = name; UI.data = data === undefined ? null : data;
+  UI.mini = name === "card" && !!SETTINGS.cardMini;
   $("#page").hidden = true; $("#sheet").hidden = false; $("#sheet-body").scrollTop = 0;
   renderSheet(); floating();
 }
@@ -68,13 +69,14 @@ function goTab(tab) {
 }
 /* Hide the round buttons and GPS box when a panel covers them. */
 function floating() {
-  const covered = !!UI.sheet || !$("#area").hidden;
+  const covered = (!!UI.sheet && !UI.mini) || !$("#area").hidden;
+  Space.head(); // first: it sets the panel's height
   $("#fabs").hidden = !$("#area").hidden || (!!UI.sheet && $("#sheet").offsetHeight > innerHeight * 0.6);
   $("#fabs").style.bottom = UI.sheet && innerHeight > 500 ? `calc(var(--nav-h) + var(--safe-b) + ${$("#sheet").offsetHeight + 10}px)` : "";
   const room = !UI.sheet || $("#sheet").offsetHeight < innerHeight * 0.4;
   ["#fab-in", "#fab-out", "#fab-rec"].forEach(s => { $(s).hidden = covered; });
   $("#fab-layers").hidden = !room;
-  renderGPS();
+  renderGPS(); Space.bar();
 }
 
 const stat = (label, value) => `<div class="stat"><b>${esc(value)}</b><span>${label}</span></div>`;
@@ -87,6 +89,7 @@ function renderSheet() {
   const view = SHEETS[UI.sheet];
   const [t, html] = view(UI.data);
   title(t); body.innerHTML = html;
+  Space.head();
 }
 
 /* Map style and terrain choices, shown both in the Layers panel and in Settings. */
@@ -141,9 +144,10 @@ const SHEETS = {
   },
   card(c) {
     const grid = OSGB.ref(c.ll[1], c.ll[0]), pos = GPS.state.pos;
-    return [c.name, `${c.detail ? `<p class="muted">${esc(c.detail)}</p>` : ""}
-      <div class="stats">${stat("Height", c.ele === undefined ? "…" : fmtHeight(c.ele))}${stat("From you (straight)", pos ? fmtDist(haversine(pos.ll, c.ll)) : "–")}${stat("Lat, lon", c.ll[1].toFixed(5) + ", " + c.ll[0].toFixed(5))}</div>
-      ${grid ? `<p>OS grid ref <strong>${grid}</strong></p>` : ""}
+    const facts = [pos ? `<strong>${esc(fmtDist(haversine(pos.ll, c.ll)))}</strong> away in a straight line` : "", `Height <strong>${c.ele === undefined ? "…" : esc(fmtHeight(c.ele))}</strong>`].filter(Boolean).join(" · ");
+    return [c.name, `${c.detail ? `<p class="muted small">${esc(c.detail)}</p>` : ""}
+      <p>${facts}</p>
+      <p class="muted small">${grid ? `OS grid ref ${grid} · ` : ""}${c.ll[1].toFixed(5)}, ${c.ll[0].toFixed(5)}</p>
       <div class="row"><button class="btn primary" data-act="card-go">Directions</button>${c.savedId ? '<button class="btn" data-act="place-rename">Rename</button><button class="btn danger" data-act="place-delete">Delete</button>' : '<button class="btn" data-act="card-save">Save place</button>'}<button class="btn" data-act="card-share">Share</button></div>`];
   },
   where() {
@@ -165,13 +169,13 @@ const SHEETS = {
     if (s.busy) out += `<p class="muted">${esc(s.progress || "Finding the way…")}</p>`;
     if (s.error) out += `<p class="warn">${esc(s.error)}</p>`;
     if (r) {
-      const p = r.profile, time = s.mode === "foot" && !s.measure ? walkSeconds(r.distance, p ? p.up : 0) : r.duration;
+      const p = r.profile, time = routeTime(r);
       if (!s.measure && time) out = out.slice(0, top) + `<div class="row summary"><div class="grow"><b>${fmtTime(time)}</b> <span>(${fmtDist(r.distance)})<br>Arrive about ${clockAt(time)} if you leave now</span></div><button class="btn primary go" data-act="nav-start">${ICON.heading}Start</button></div>` + out.slice(top);
       if (r.from && r.from !== "net") out += `<p class="muted small">Worked out on your phone from your ${r.from === "pack" ? "imported map" : "downloaded map"}. It doesn’t know about closures${s.mode === "foot" ? " or rights of way: check paths are open to you" : s.mode === "car" ? " or turn restrictions: follow road signs" : " or cycling rules: follow signs"}.</p>`;
       if (r.gaps && Math.max(...r.gaps) > 60) out += `<p class="warn small">The line starts or ends ${fmtDist(Math.max(...r.gaps))} from a point you chose: there is no mapped way closer.</p>`;
       out += `<div class="stats">${stat("Distance", fmtDist(r.distance))}${s.measure ? stat("Walking time", fmtTime(walkSeconds(r.distance, p ? p.up : 0))) : stat("Time", fmtTime(time))}${stat("Climb / drop", p ? fmtHeight(p.up) + " / " + fmtHeight(p.down) : p === undefined ? "…" : "–")}</div>
         ${p ? profileSVG(p) : p === null ? '<p class="muted small">Height data isn’t available here while offline.</p>' : ""}
-        <div class="row">${r.saved ? '<button class="btn danger" data-act="walk-delete">Delete this walk</button>' : '<button class="btn primary" data-act="walk-save">Save this walk</button>'}<button class="btn" data-act="plan-fit">Show whole route</button>${r.saved ? '<button class="btn" data-act="plan-clear">Remove from map</button>' : ""}</div>
+        <div class="row">${r.saved ? '<button class="btn danger" data-act="walk-delete">Delete this walk</button>' : '<button class="btn primary" data-act="walk-save">Save this walk</button>'}<button class="btn" data-act="plan-fit">Show whole route</button><button class="btn" data-act="plan-clear">Remove from map</button></div>
         ${r.steps.length ? `<details><summary>Step by step (${r.steps.length})</summary><ol class="steps">${r.steps.map(t => `<li>${esc(t)}</li>`).join("")}</ol></details>` : ""}`;
     }
     return [r && r.saved ? r.saved.name : s.measure ? "Measure distance" : "Directions", out];
@@ -219,7 +223,9 @@ function recStats() {
   const clock = s => `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, "0")}:${String(Math.floor(s) % 60).padStart(2, "0")}`;
   return stat("Distance", fmtDist(f.distance)) + stat("Time", clock(f.elapsed)) + stat("Moving", clock(f.moving)) + stat("Climb (GPS, rough)", fmtHeight(f.climb)) + stat("Moving speed", f.moving > 30 ? fmtSpeed(f.distance / f.moving) : "–");
 }
-const showTrack = t => { Plan.clear(); setData("plan", { type: "Feature", properties: {}, geometry: { type: "MultiLineString", coordinates: t.lines } }); openSheet("trackview", t); fit(t.lines.flat()); };
+const showTrack = t => { Plan.clear(); setData("plan", { type: "Feature", properties: {}, geometry: { type: "MultiLineString", coordinates: t.lines } }); Space.showTrack(t); openSheet("trackview", t); fit(t.lines.flat()); };
+/* How long the planned route takes: walking allows for the climb. */
+const routeTime = r => Plan.state.mode === "foot" && !Plan.state.measure ? walkSeconds(r.distance, r.profile ? r.profile.up : 0) : r.duration;
 const clockAt = seconds => new Date(Date.now() + seconds * 1000).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 const tagDistance = d => /^\s*[\d.]+\s*$/.test(d) ? fmtDist(parseFloat(d) * 1000) : d;
 
@@ -233,17 +239,18 @@ function renderGPS() {
   const p = GPS.state.pos, f = GPS.follow(), box = $("#gps"), btn = $("#fab-locate");
   btn.className = "fab" + (f === "heading" ? " heading" : f === "follow" ? " on" : "");
   btn.innerHTML = f === "heading" ? ICON.heading : ICON.locate;
-  const rec = Rec.status(), recButton = $("#fab-rec");
+  const rec = Rec.status(), recButton = $("#fab-rec"), area = $("#gpsbox"), folded = !!SETTINGS.hideGps, show = $("#gps-show");
   recButton.classList.toggle("recording", rec === "recording");
   box.dataset.act = Rec.active() ? "record" : "where";
-  box.hidden = !!UI.sheet || !$("#area").hidden || (!Rec.active() && !p && !GPS.state.error);
+  area.hidden = !!UI.sheet || !$("#area").hidden || (!Rec.active() && !p && !GPS.state.error);
+  box.hidden = $("#gps-hide").hidden = folded; show.hidden = !folded;
+  if (folded) show.textContent = Rec.active() ? (rec === "recording" ? "● " : "") + fmtDist(Rec.figures().distance) : p ? "GPS ▴" : "No GPS ▴";
   if (Rec.active()) { const f = Rec.figures(); box.innerHTML = `<div><b>${fmtDist(f.distance)}</b><span>${{ recording: "● Recording", paused: "Paused", interrupted: "Interrupted", stopped: "Not saved yet" }[rec]}</span></div><div><b>${fmtTime(f.elapsed)}</b><span>Time</span></div><div><b>${p ? fmtHeight(p.altitude) : "–"}</b><span>Altitude</span></div>`; return; }
   box.innerHTML = p ? `<div><b>${fmtHeight(p.altitude)}</b><span>Altitude</span></div><div><b>${fmtSpeed(p.speed)}</b><span>Speed</span></div><div><b>±${fmtHeight(p.accuracy)}</b><span>Accuracy</span></div>` : `<div class="small">${esc(GPS.state.error)}</div>`;
 }
 function renderChip() {
-  const text = [map ? Packs.hint(map) : "", online() ? "" : dataBlocked ? "Mobile data off: showing downloaded maps" : "Offline: showing downloaded maps", SETTINGS.routes && /Loading|Couldn't|busy/.test(Routes.status()) ? Routes.status() : "",
-    Offline.job() ? `Downloading ${Math.round(Offline.job().done / Offline.job().total * 100)}%` : ""].filter(Boolean).join(" · ");
-  $("#chip").textContent = text; $("#chip").hidden = !text;
+  Space.chip([map ? Packs.hint(map) : "", online() ? "" : dataBlocked ? "Mobile data off: showing downloaded maps" : "Offline: showing downloaded maps", SETTINGS.routes && /Loading|Couldn't|busy/.test(Routes.status()) ? Routes.status() : "",
+    Offline.job() ? `Downloading ${Math.round(Offline.job().done / Offline.job().total * 100)}%` : ""].filter(Boolean));
 }
 
 /* ---- internet and mobile data ---- */
@@ -395,7 +402,7 @@ const fit = coords => { const b = boundsOf(coords); GPS.setFollow("off"); map.fi
 function openRoute(r) { Routes.show(r); openSheet("route", r); Routes.select(r.id); }
 
 /* Close the panels and follow your position while retracing a walk. */
-function followBack() { setData("plan", EMPTY); goTab("map"); GPS.setFollow("follow"); Back.update(); if (!GPS.state.pos) toast(GPS.state.error || "Finding your position…"); }
+function followBack() { Space.remove(); goTab("map"); GPS.setFollow("follow"); Back.update(); if (!GPS.state.pos) toast(GPS.state.error || "Finding your position…"); }
 
 /* ---- buttons ---- */
 const ACTIONS = {
@@ -433,9 +440,9 @@ const ACTIONS = {
   "rec-discard": async () => { if (await dialog({ title: "Discard this recording?", text: "The walk you just recorded will be deleted. This can't be undone.", yes: "Discard" })) { Rec.discard(); goTab("map"); } },
   track: d => { const t = SAVED.tracks.find(x => x.id === d.id); if (t) showTrack(t); },
   "track-fit": () => fit(UI.data.lines.flat()),
-  "track-hide": () => { setData("plan", EMPTY); goTab("map"); },
+  "track-hide": () => { Space.remove(); goTab("map"); },
   "track-rename": async () => { const t = UI.data; const name = await dialog({ title: "Rename walk", input: t.name, yes: "Save" }); if (name) { t.name = name; persistSaved(); renderSheet(); } },
-  "track-delete": async () => { const t = UI.data; if (await dialog({ title: "Delete recorded walk?", text: t.name, yes: "Delete" })) { SAVED.tracks = SAVED.tracks.filter(x => x.id !== t.id); persistSaved(); setData("plan", EMPTY); goTab("saved"); } },
+  "track-delete": async () => { const t = UI.data; if (await dialog({ title: "Delete recorded walk?", text: t.name, yes: "Delete" })) { SAVED.tracks = SAVED.tracks.filter(x => x.id !== t.id); persistSaved(); Space.remove(); goTab("saved"); } },
   "update-install": () => Update.install(),
   "routes-on": () => { SETTINGS.routes = true; saveSettings(); applyLayers(); Routes.refresh(); renderSheet(); },
   route: d => { const r = Routes.get(+d.id); if (r) openRoute(r); },
@@ -480,6 +487,7 @@ const ACTIONS = {
   "nav-exit": () => Nav.stop(),
   "nav-view": () => Nav.view(),
   "nav-voice": () => Nav.voice(),
+  "search-show": () => { SETTINGS.hideSearch = false; saveSettings(); document.body.classList.remove("search-mini"); $("#q").focus(); },
   "search-clear": () => { searchSeq++; clearTimeout(typingTimer); $("#q").value = ""; $("#search-x").hidden = true; if (UI.sheet === "search") closeSheet(); },
   pref: d => {
     SETTINGS[d.k] = d.v; saveSettings();
@@ -527,7 +535,7 @@ document.addEventListener("change", e => {
   SETTINGS[k] = e.target.checked; saveSettings();
   if (k === "awake") keepAwake(SETTINGS.awake || !!Offline.job() || Nav.active()); else { applyLayers(); Routes.refresh(); Barriers.schedule(); }
 });
-$("#search").addEventListener("submit", e => { e.preventDefault(); const t = $("#q").value.trim(); if (t && map) { $("#q").blur(); runSearch(t, false); } });
+$("#search").addEventListener("submit", e => { e.preventDefault(); if (SETTINGS.hideSearch) { ACTIONS["search-show"](); return; } const t = $("#q").value.trim(); if (t && map) { $("#q").blur(); runSearch(t, false); } });
 $("#q").addEventListener("input", () => {
   const t = $("#q").value.trim(); $("#search-x").hidden = !$("#q").value; if (!map) return;
   clearTimeout(typingTimer);
@@ -552,6 +560,7 @@ window.appBack = () => {
   if (UI.sheet === "trackview") { openSheet("saved"); UI.tab = "saved"; nav(); return true; }
   if (UI.sheet === "route" || (UI.sheet === "card" && UI.tab === "saved")) { openSheet(UI.tab === "saved" ? "saved" : "routes"); return true; }
   if (UI.sheet || !$("#page").hidden) { goTab("map"); return true; }
+  if (Space.isFull()) { Space.full(false); return true; }
   return false;
 };
 
@@ -572,6 +581,7 @@ function wireMap() {
     $("#q").blur();
     const ll = e.lngLat.toArray();
     if (UI.sheet === "directions") {
+      if (UI.mini && !Plan.state.measure && Plan.state.stops.length > 1) return; // looking at the map, not adding stops
       if (Plan.state.result && Plan.state.result.saved) return;
       Plan.add({ name: "Point on map", ll }); return;
     }
@@ -606,6 +616,7 @@ function followRoutes() { if (Date.now() - lastFollow > 20000) { lastFollow = Da
   GPS.onChange(() => {
     renderGPS(); if (Back.active()) Back.update();
     Nav.update();
+    if (UI.mini) Space.head();
     if (UI.sheet === "where" && Date.now() - sheetStamp > 900) { sheetStamp = Date.now(); renderSheet(); }
     if (UI.sheet === "directions" && GPS.state.pos && /Waiting for GPS/.test(Plan.state.error)) Plan.calculate();
   });
@@ -626,7 +637,7 @@ function followRoutes() { if (Date.now() - lastFollow > 20000) { lastFollow = Da
   Rec.onChange(() => {
     const now = Rec.status() + Rec.saving() + !!Rec.figures().points; // redraw the panel when the first position arrives
     renderGPS();
-    if (UI.sheet === "record") { const stats = $("#rec-stats"); if (now === shown && stats && Rec.figures().points) stats.innerHTML = recStats(); else { renderSheet(); floating(); } }
+    if (UI.sheet === "record") { const stats = $("#rec-stats"); if (now === shown && stats && Rec.figures().points) stats.innerHTML = recStats(); else { renderSheet(); floating(); } if (UI.mini) Space.head(); }
     shown = now;
   });
   Rec.poll();

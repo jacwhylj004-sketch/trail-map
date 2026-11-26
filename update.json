@@ -1,23 +1,23 @@
 {
-    "build":  14,
-    "name":  "1.13",
+    "build":  15,
+    "name":  "1.14",
     "shell":  8,
-    "notes":  "Search now suggests places as you type, with or without internet. Directions work offline too, and the new Start button gives turn-by-turn navigation with arrival time. Spoken directions need the 1.13 app file.",
+    "notes":  "Remove a route from the map with the X on its new bar. More room for the map: shrink panels, hide the altitude box and search bar, close messages, smaller guidance banners and a Full map button.",
     "files":  [
                   {
                       "path":  "app.css",
-                      "sha256":  "cd8e169cb5e55760ac839e2b6869627adbb84ac47de6536962a8c376c536ca89",
-                      "size":  15349
+                      "sha256":  "2a2fcdb1e8c171a9d4438f32f363f3e53d8919f580504ad9e0dae586a90517f7",
+                      "size":  18762
                   },
                   {
                       "path":  "index.html",
-                      "sha256":  "5f3a0b1784063b46748fd5380ddf0cb8cea67c0444c007eca9613dbeb8d7f598",
-                      "size":  4570
+                      "sha256":  "5cdb76433012a02a9245260f1a4507848e50fb71cc47918dc4fe6319f119e349",
+                      "size":  5683
                   },
                   {
                       "path":  "version.json",
-                      "sha256":  "3505ca0ba1309dc88bc4f9fe73bdb514a0876ffbdb2c760d1399d6b1c42a6104",
-                      "size":  291
+                      "sha256":  "443a70ebb54d13328c57bb3b0737334be168e23bdc23b30515c4278c820bd705",
+                      "size":  275
                   },
                   {
                       "path":  "js/back.js",
@@ -56,8 +56,8 @@
                   },
                   {
                       "path":  "js/navigate.js",
-                      "sha256":  "d10197d9d3185ece015068329fa457b47a2885116c219fa555eff5cafee7fdb2",
-                      "size":  14448
+                      "sha256":  "52f794921f6f38325fe0c63bd0048b7894607283bf6c953ea5670bbbbab0e9a7",
+                      "size":  14546
                   },
                   {
                       "path":  "js/offline.js",
@@ -100,9 +100,14 @@
                       "size":  9355
                   },
                   {
+                      "path":  "js/space.js",
+                      "sha256":  "14c03ab56a05a4b1b97468f38eeed43e5b9975d609ed53ac44f8bc7046ff9e5f",
+                      "size":  6498
+                  },
+                  {
                       "path":  "js/ui.js",
-                      "sha256":  "387ee017c3070ada84406ba022bf59552bbb83ddc9fe96dba8259760d9bf95f8",
-                      "size":  56121
+                      "sha256":  "20736f9cddab684d5807eec6b987d99ba0b2c239d30376c0fa9e66b4aed5bd67",
+                      "size":  57107
                   },
                   {
                       "path":  "js/update.js",

@@ -1,6 +1,6 @@
 {
-    "build":  14,
-    "name":  "1.13",
+    "build":  15,
+    "name":  "1.14",
     "shell":  8,
-    "notes":  "Search now suggests places as you type, with or without internet. Directions work offline too, and the new Start button gives turn-by-turn navigation with arrival time. Spoken directions need the 1.13 app file."
+    "notes":  "Remove a route from the map with the X on its new bar. More room for the map: shrink panels, hide the altitude box and search bar, close messages, smaller guidance banners and a Full map button."
 }
