@@ -1,6 +1,6 @@
 {
-    "build":  11,
-    "name":  "1.10",
-    "shell":  7,
-    "notes":  "The recording notification now shows your distance, time and speed. Install the new app file to get it."
+    "build":  12,
+    "name":  "1.11",
+    "shell":  8,
+    "notes":  "Warning notifications when GPS is lost, recording stops or something goes wrong. Install the new app file to get them."
 }

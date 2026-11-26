@@ -1,8 +1,8 @@
 {
-    "build":  11,
-    "name":  "1.10",
-    "shell":  7,
-    "notes":  "The recording notification now shows your distance, time and speed. Install the new app file to get it.",
+    "build":  12,
+    "name":  "1.11",
+    "shell":  8,
+    "notes":  "Warning notifications when GPS is lost, recording stops or something goes wrong. Install the new app file to get them.",
     "files":  [
                   {
                       "path":  "app.css",
@@ -16,8 +16,8 @@
                   },
                   {
                       "path":  "version.json",
-                      "sha256":  "8de66ec112923657ce9b52e8e1fee79f09435e1be95e12013a9d7d373503d359",
-                      "size":  184
+                      "sha256":  "a1e92e77a4e31c1929a2de95a6d2f8155eac2a0879e4ed0c5d4a34f47afe5b56",
+                      "size":  199
                   },
                   {
                       "path":  "js/back.js",
@@ -31,8 +31,8 @@
                   },
                   {
                       "path":  "js/core.js",
-                      "sha256":  "41efa6e5a37a652c0af02525c10f27c0dd5dcede9b6dfb0420c923f572e1d685",
-                      "size":  10131
+                      "sha256":  "5c19dc2dc17196ddfbf71024b96101fa189b95b3a740ffe637692968e2e54983",
+                      "size":  10331
                   },
                   {
                       "path":  "js/graphs.js",
@@ -46,8 +46,8 @@
                   },
                   {
                       "path":  "js/offline.js",
-                      "sha256":  "e308c9495a75871611a2f17b1d95bf0561fee9b6444b729656425f1c81834a1e",
-                      "size":  11950
+                      "sha256":  "5f1c12979ad72babafc6ab5d825ee534ee0986956980f395c3e7bb3baf7b475b",
+                      "size":  12097
                   },
                   {
                       "path":  "js/osmap.js",
@@ -56,8 +56,8 @@
                   },
                   {
                       "path":  "js/packs.js",
-                      "sha256":  "fe7956436c339fef7c96c259c2451d4c135f297d3a0a947a784560ea0bfe5809",
-                      "size":  15300
+                      "sha256":  "45eaac02650f51d1a39919468e62bdd5beb6ed54c8dd76f4f2a5fbd417feec0b",
+                      "size":  15344
                   },
                   {
                       "path":  "js/paths.js",
@@ -86,8 +86,8 @@
                   },
                   {
                       "path":  "js/update.js",
-                      "sha256":  "d247abe11777c814c1799bdbf1d7891e04c13db549d71e80c922a00fdf110308",
-                      "size":  3275
+                      "sha256":  "f7c2b9cbf74b5aa2ccf94e61cb1e9b933a32328dc1afccf88d8341f38ec25ec4",
+                      "size":  3317
                   },
                   {
                       "path":  "vendor/maplibre-contour.js",

@@ -183,6 +183,7 @@ const Offline = (() => {
     } finally {
       region.bytes = Math.max(bytes, region.complete ? 0 : region.bytes || 0);
       const removed = job.removed; job = null; keepAwake(SETTINGS.awake);
+      if (!removed && !region.complete && region.error !== "Stopped") alertPhone("Map download didn't finish", `${region.name}: ${region.error}`);
       if (!removed) await DB.put("regions", region).catch(() => {});
       changed();
       if (removed) await remove(removed);

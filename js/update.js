@@ -36,7 +36,7 @@ const Update = (() => {
     NATIVE.installUpdate(); // the app restarts itself on the new version when this finishes
   }
   window.onUpdate = u => {
-    if (u.error) { state.progress = null; state.message = u.error; changed(); }
+    if (u.error) { state.progress = null; state.message = u.error; changed(); alertPhone("App update failed", u.error); }
     else if (u.done === u.total || u.done % 5 === 0) { state.progress = u; changed(); }
   };
 

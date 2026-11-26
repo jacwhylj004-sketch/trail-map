@@ -195,7 +195,7 @@ const Packs = (() => {
     keepAwake(msg.bytes !== undefined || SETTINGS.awake); // a large file takes a while: don't let the phone sleep
     if (msg.bytes !== undefined) state = { busy: true, bytes: msg.bytes, error: "" };
     else if (msg.cancelled) state = { busy: false, bytes: 0, error: "" };
-    else if (msg.error) { state = { busy: false, bytes: 0, error: msg.error }; toast(msg.error); }
+    else if (msg.error) { state = { busy: false, bytes: 0, error: msg.error }; toast(msg.error); alertPhone("Map import failed", msg.error); }
     else if (msg.done) { state = { busy: false, bytes: 0, error: "" }; await load(); toast(`${msg.done} imported. Tap View to see it.`); }
     changed();
   };

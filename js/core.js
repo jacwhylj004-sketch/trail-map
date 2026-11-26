@@ -25,6 +25,9 @@ const online = () => navigator.onLine && !dataBlocked;
 const NO_DATA = "Mobile data is off. Connect to Wi-Fi, or turn it on in Settings.";
 const needsNet = message => dataBlocked ? NO_DATA : message;
 
+/* Something went wrong that you may not be looking at: have the phone send a notification too. */
+const alertPhone = (title, text) => { if (NATIVE && NATIVE.problem) NATIVE.problem(title, text); };
+
 /* ---- IndexedDB: offline tiles, walking routes and downloaded areas ---- */
 const DB = (() => {
   let ready;
