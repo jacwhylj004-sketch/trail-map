@@ -1,6 +1,6 @@
 {
-    "build":  17,
-    "name":  "1.16",
+    "build":  18,
+    "name":  "1.17",
     "shell":  8,
-    "notes":  "Road warnings now work without internet in downloaded areas. Tap Add road warnings on areas you already have. New choices to download satellite pictures, or just heights and safety details for an imported map."
+    "notes":  "While navigating, the part of the route you have already walked turns grey, so it is clear from the blue route ahead."
 }

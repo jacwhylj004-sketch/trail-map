@@ -64,6 +64,13 @@ const Nav = (() => {
     return all.filter(p => p.off <= least + 12).reduce((p, q) => Math.abs(q.along - (nav.along || 0)) < Math.abs(p.along - (nav.along || 0)) ? q : p);
   }
 
+  /* The part already walked (or ridden) turns grey, including what you covered before taking a new route. */
+  function drawDone() {
+    const lines = [...nav.past];
+    if (nav.begun != null && nav.along - nav.begun > 2) lines.push(Safety.stretch(nav.route.coords, nav.begun, nav.along));
+    setData("done", lines.length ? { type: "Feature", properties: {}, geometry: { type: "MultiLineString", coordinates: lines } } : EMPTY);
+  }
+
   function camera(animate = true) {
     const pos = GPS.state.pos; if (!nav || !nav.follow || !pos) return;
     const car = nav.mode === "car", ahead = bearing(pointAt(nav.along || 0), pointAt(Math.min(total(), (nav.along || 0) + (car ? 80 : 30))));
@@ -147,7 +154,8 @@ const Nav = (() => {
   /* Starts following a route (the first, or a new one). */
   function use(route) {
     const passed = nav.stops ? nav.stops.filter(s => s.along > (nav.along || 0) + 30) : null;
-    nav.route = route; nav.along = null; nav.said = new Set(); nav.dir = null; measure();
+    if (nav.route && nav.begun != null && nav.along - nav.begun > 2) nav.past.push(Safety.stretch(nav.route.coords, nav.begun, nav.along));
+    nav.route = route; nav.along = null; nav.begun = null; nav.said = new Set(); nav.dir = null; measure();
     nav.turns = route.turns && route.turns.length ? route.turns.filter(t => t.dir !== "depart") : [{ along: total(), dir: "arrive", text: "Arrive at your destination" }];
     nav.start = route.turns && route.turns.find(t => t.dir === "depart");
     /* the route's own distances can differ a little from those measured along the line */
@@ -160,7 +168,7 @@ const Nav = (() => {
     const between = nav.turns.filter(t => t.dir === "stop");
     nav.stops = passed ? passed.map((s, i) => ({ ll: s.ll, along: between[i] ? between[i].along : total() })) : between.map((t, i) => ({ ll: nav.via[i] || pointAt(t.along), along: t.along }));
     setData("plan", lineFeature(route.coords)); Safety.draw(nav.mode === "foot" ? route : null);
-    showWarning(null); moreDraw();
+    drawDone(); showWarning(null); moreDraw();
     if (route.profile === undefined) { const mine = nav; profileOf(route.coords).then(p => { route.profile = p; if (nav === mine && nav.route === route) moreDraw(); }).catch(() => {}); }
   }
 
@@ -172,7 +180,7 @@ const Nav = (() => {
     nav.time = pos.time;
     if (nav.busy) { camera(); return; }
     const here = locate(pos.ll), allowed = Math.max(nav.mode === "car" ? 50 : 35, pos.accuracy * 1.3), off = here.off > allowed;
-    if (!off) { nav.along = here.along; nav.off = 0; nav.joined = true; nav.failed = ""; }
+    if (!off) { nav.along = here.along; nav.off = 0; nav.joined = true; nav.failed = ""; if (nav.begun == null) nav.begun = here.along < 40 ? 0 : here.along; drawDone(); }
     else if (pos.accuracy < 60) nav.off++;
     const along = nav.along || 0, left = Math.max(0, total() - along);
     camera(); moreLive();
@@ -225,7 +233,7 @@ const Nav = (() => {
     if (!r || s.measure || r.coords.length < 2) return;
     const stops = r.saved ? [] : s.stops, last = stops[stops.length - 1];
     nav = { mode: (r.saved ? r.mode : s.mode) || "foot", end: r.coords[r.coords.length - 1], name: r.saved ? r.saved.name : last ? last.name : "Your destination",
-      fromMe: !!(stops[0] && stops[0].me), via: stops.slice(1, -1).map(p => p.ll).filter(Boolean), follow: true, off: 0, joined: false, busy: false, rerouted: 0, time: 0, failed: "" };
+      fromMe: !!(stops[0] && stops[0].me), past: [], via: stops.slice(1, -1).map(p => p.ll).filter(Boolean), follow: true, off: 0, joined: false, busy: false, rerouted: 0, time: 0, failed: "" };
     closeSheet(); if (Back.active()) $("#back").hidden = true;
     document.body.classList.add("navigating"); $("#nav-top").hidden = false; $("#nav-bottom").hidden = false;
     GPS.setFollow("off"); GPS.start(); keepAwake(true); map.resize();
@@ -239,7 +247,7 @@ const Nav = (() => {
   function stop() {
     if (!nav) return;
     const route = nav.route, recalculate = nav.changed && !(Plan.state.result && Plan.state.result.saved);
-    hush(); more(false); nav = null;
+    hush(); more(false); nav = null; setData("done", EMPTY);
     document.body.classList.remove("navigating"); $("#nav-top").hidden = true; $("#nav-bottom").hidden = true;
     keepAwake(SETTINGS.awake || !!Offline.job()); map.resize();
     map.easeTo({ pitch: SETTINGS.relief3d !== "off" ? 55 : 0, bearing: 0, padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 400 });

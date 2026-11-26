@@ -1,8 +1,8 @@
 {
-    "build":  17,
-    "name":  "1.16",
+    "build":  18,
+    "name":  "1.17",
     "shell":  8,
-    "notes":  "Road warnings now work without internet in downloaded areas. Tap Add road warnings on areas you already have. New choices to download satellite pictures, or just heights and safety details for an imported map.",
+    "notes":  "While navigating, the part of the route you have already walked turns grey, so it is clear from the blue route ahead.",
     "files":  [
                   {
                       "path":  "app.css",
@@ -16,8 +16,8 @@
                   },
                   {
                       "path":  "version.json",
-                      "sha256":  "e778ec5942df6b162c8b37492fa1c8bbe56c13dc67c426ab02015bd9ae27e56a",
-                      "size":  290
+                      "sha256":  "b35798ffd09eef26440001a4a478ab017ab22ea4cebb26b15b5860d7ec19f506",
+                      "size":  198
                   },
                   {
                       "path":  "js/back.js",
@@ -46,8 +46,8 @@
                   },
                   {
                       "path":  "js/map.js",
-                      "sha256":  "bfee7bee6d94caa116273f665b555aef6d1b69a0204ec7cd025ee835ca74682f",
-                      "size":  20193
+                      "sha256":  "4727e13469894adc9d25b98ccdf776ac2bd7c5e9faa4818b8d3afcad0087108e",
+                      "size":  20673
                   },
                   {
                       "path":  "js/mvt.js",
@@ -56,8 +56,8 @@
                   },
                   {
                       "path":  "js/navigate.js",
-                      "sha256":  "d5201a07e691ff8211a16a13498d09412298f779c26aefef6e1bde3309e0a371",
-                      "size":  19683
+                      "sha256":  "fc84b0bbec9ef9ee955a8dd2383ad5dab1559f69b6fab3307fc82a7beaad913c",
+                      "size":  20404
                   },
                   {
                       "path":  "js/offline.js",
