@@ -256,6 +256,14 @@ function connectionChanged() {
 }
 window.onNetwork = blocked => { dataBlocked = blocked; if (map) connectionChanged(); };
 
+/* ---- notifications ---- */
+function noticeControls() {
+  if (!NATIVE.problem) return '<p class="muted small">Warning notifications need the newest Trail Map app file. Ask Claude for it.</p>';
+  return `<p class="small">Trail Map sends a warning if the GPS signal is lost, a recording stops, or a download or update fails. Send a test to check your phone lets it through.</p>
+    <button class="btn primary" data-act="notify-test">Send test notification</button>
+    <p class="muted small">It should sound or vibrate, as your phone’s sound mode allows. If nothing appears, open your phone’s Settings &gt; Apps &gt; Trail Map &gt; Notifications and allow them, including “Problems and warnings”.</p>`;
+}
+
 /* ---- Settings page ---- */
 let settingsSeq = 0;
 async function renderSettings() {
@@ -283,6 +291,7 @@ async function renderSettings() {
     <section class="panel"><h2>Terrain</h2>${terrainControls()}</section>
     <section class="panel"><h2>Walk recording and battery</h2>${gpsControls()}
       <p class="small">To save the most battery, keep the screen off between map checks. On a Samsung phone, set Settings &gt; Apps &gt; Trail Map &gt; Battery to Unrestricted so recording isn’t stopped.</p></section>
+    ${NATIVE ? `<section class="panel"><h2>Notifications</h2>${noticeControls()}</section>` : ""}
     <section class="panel"><h2>Units</h2>${seg("units", [["km", "Kilometres, metres"], ["mi", "Miles, feet"]])}</section>
     <section class="panel"><h2>Appearance</h2>${seg("theme", [["auto", "Automatic"], ["light", "Light"], ["dark", "Dark"]])}
       <label class="switch"><input type="checkbox" data-set="awake" ${SETTINGS.awake ? "checked" : ""}> <span>Keep the screen on while the app is open (uses more battery)</span></label></section>
@@ -371,6 +380,7 @@ const ACTIONS = {
     if ($("#page").hidden) { renderSheet(); floating(); } else renderSettings();
   },
   "update-check": () => Update.check(true),
+  "notify-test": () => { alertPhone("Test notification", "Notifications are working. Trail Map can warn you if something goes wrong."); toast("Test sent. Check your notifications."); },
   record: () => { UI.tab = "map"; nav(); openSheet("record"); },
   "rec-start": () => { Rec.start(); GPS.setFollow("follow"); },
   "gps-mode": d => { SETTINGS.gps = d.v; saveSettings(); Rec.setMode(d.v); if ($("#page").hidden) { renderSheet(); floating(); } else renderSettings(); },

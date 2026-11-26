@@ -1,6 +1,6 @@
 {
-    "build":  12,
-    "name":  "1.11",
+    "build":  13,
+    "name":  "1.12",
     "shell":  8,
-    "notes":  "Warning notifications when GPS is lost, recording stops or something goes wrong. Install the new app file to get them."
+    "notes":  "New in Settings: a Notifications section with a Send test notification button, to check your phone lets Trail Map\u0027s warnings through."
 }

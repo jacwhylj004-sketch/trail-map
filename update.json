@@ -1,8 +1,8 @@
 {
-    "build":  12,
-    "name":  "1.11",
+    "build":  13,
+    "name":  "1.12",
     "shell":  8,
-    "notes":  "Warning notifications when GPS is lost, recording stops or something goes wrong. Install the new app file to get them.",
+    "notes":  "New in Settings: a Notifications section with a Send test notification button, to check your phone lets Trail Map\u0027s warnings through.",
     "files":  [
                   {
                       "path":  "app.css",
@@ -16,8 +16,8 @@
                   },
                   {
                       "path":  "version.json",
-                      "sha256":  "a1e92e77a4e31c1929a2de95a6d2f8155eac2a0879e4ed0c5d4a34f47afe5b56",
-                      "size":  199
+                      "sha256":  "c3f040026c109b2ac8c36f8fe249afcbc44447b30c16429c61136ba5ece0af05",
+                      "size":  219
                   },
                   {
                       "path":  "js/back.js",
@@ -81,8 +81,8 @@
                   },
                   {
                       "path":  "js/ui.js",
-                      "sha256":  "7fd675c0fff1ad6261780cec0ecb76227ffbd91e13439998ec8183049f72419c",
-                      "size":  50561
+                      "sha256":  "b6f93dc9ef59a34a296bd25950cf81379a84952b728e765c354e15359aa104fe",
+                      "size":  51559
                   },
                   {
                       "path":  "js/update.js",
