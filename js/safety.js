@@ -16,7 +16,8 @@ const Safety = (() => {
     "through-check": { level: "care", title: "Through road: watch for traffic", say: "walk along a through road", min: 50 },
     "hard": { level: "danger", title: "Difficult mountain path", say: "reach a difficult mountain path", min: 0 },
     "ford": { level: "care", title: "Ford: water to cross", say: "reach a ford", min: 0, point: true },
-    "rail": { level: "care", title: "Railway crossing", say: "cross a railway", min: 0, point: true }
+    "rail": { level: "care", title: "Railway crossing", say: "cross a railway", min: 0, point: true },
+    "rail-check": { level: "care", title: "Railway: look for the crossing or bridge", say: "reach a railway. Look for the crossing or bridge", min: 0, point: true }
   };
   const SIGN = level => `<svg class="sign ${level}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.500 23 21.500H1z" fill="currentColor"/><path d="M12 9v6M12 18v.5" stroke="${level === "danger" ? "#fff" : "#1b1b21"}" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>`;
 
@@ -47,6 +48,7 @@ const Safety = (() => {
       along += s.len;
       const n = s.node || {};
       if (/^(level_crossing|crossing)$/.test(n.railway)) add("rail", along, along);
+      if (n.railway === "check") add("rail-check", along, along);
       if (n.highway === "ford" || n.ford === "yes") add("ford", along, along);
     }
     return found.filter(h => h.to - h.from >= KINDS[h.kind].min).sort((a, b) => a.from - b.from);
@@ -60,10 +62,13 @@ const Safety = (() => {
   function listHTML(r, walking) {
     if (!walking || r.hazards === undefined) return "";
     if (r.hazards === null) return `<p class="warn small">${SIGN("care")} Road warnings couldn’t be checked for this route. Look along it on the map before you go.</p>`;
-    if (!r.hazards.length) return '<p class="muted small">No main-road walking, fords or railway crossings are mapped on this route. Still take care at every road.</p>';
+    /* a route worked out on the phone: say whether the safety details were there to check it with */
+    const saved = r.from === "net" || !r.details ? "" : r.details === "saved" ? '<p class="muted small">Checked with the safety details saved on your phone.</p>'
+      : '<p class="warn small">Pavements, fords and crossings aren’t saved for all of this route. To check them, add it under Settings &gt; Offline maps while you have internet.</p>';
+    if (!r.hazards.length) return `<p class="muted small">${r.details === "basic" ? "No main-road walking is mapped on this route." : "No main-road walking, fords or railway crossings are mapped on this route."} Still take care at every road.</p>${saved}`;
     return drop("warn", `${SIGN(r.hazards.some(h => of(h).level === "danger") ? "danger" : "care")} ${countText(r.hazards)}`,
       r.hazards.map((h, i) => `<button class="item hazard" data-act="hazard-show" data-i="${i}">${SIGN(of(h).level)}<span class="grow">${of(h).title}<small>${esc(where(h))}</small></span></button>`).join("") +
-      '<p class="muted small">From what OpenStreetMap says about each road. Pavements and hazards may be missing from it, so look before you walk.</p>', true);
+      '<p class="muted small">From what OpenStreetMap says about each road. Pavements and hazards may be missing from it, so look before you walk.</p>', true) + saved;
   }
 
   /* ---- drop-downs that stay as you left them when the panel is redrawn ---- */

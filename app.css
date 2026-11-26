@@ -140,8 +140,9 @@ ol.steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column;
 .ind { position: relative; } .dot { position: absolute; top: 3px; right: 12px; width: 10px; height: 10px; border-radius: 50%; background: var(--red); }
 
 #area { position: fixed; inset: 0 0 calc(var(--nav-h) + var(--safe-b)) 0; z-index: 18; pointer-events: none; }
-#area-frame { position: absolute; left: 28px; right: 28px; top: calc(var(--safe-t) + 28px); bottom: 232px; border: 3px solid var(--accent); border-radius: 14px; box-shadow: 0 0 0 2000px rgba(0,0,0,.28); }
-#area-panel { position: absolute; left: 0; right: 0; bottom: 0; pointer-events: auto; background: var(--surface); border-radius: 24px 24px 0 0; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; max-width: 640px; margin: 0 auto; max-height: 220px; overflow-y: auto; }
+#area-panel label.switch { min-height: 34px; font-size: .9rem; }
+#area-frame { position: absolute; left: 28px; right: 28px; top: calc(var(--safe-t) + 28px); bottom: 332px; border: 3px solid var(--accent); border-radius: 14px; box-shadow: 0 0 0 2000px rgba(0,0,0,.28); }
+#area-panel { position: absolute; left: 0; right: 0; bottom: 0; pointer-events: auto; background: var(--surface); border-radius: 24px 24px 0 0; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; max-width: 640px; margin: 0 auto; max-height: 320px; overflow-y: auto; }
 
 #toast { position: fixed; z-index: 40; left: 50%; transform: translateX(-50%); bottom: calc(var(--nav-h) + var(--safe-b) + 112px); background: #2b2d31; color: #fff; padding: 10px 16px; border-radius: 14px; font-size: .9rem; width: max-content; max-width: calc(100% - 32px); box-shadow: var(--shadow); }
 #dialog { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.5); display: grid; place-items: center; padding: 20px; }

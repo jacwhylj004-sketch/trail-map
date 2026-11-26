@@ -2,7 +2,8 @@
 /* Map data: every map and elevation tile is looked up on the phone first, then on the internet.
    "Offline maps" are areas whose tiles and walking routes are saved on the phone until you delete them. */
 
-const VT_MAX = 14, DEM_MAX = 12, MAX_TILES = 40000;
+const VT_MAX = 14, DEM_MAX = 12, SAT_MAX = 14, MAX_TILES = 40000;
+const SAT_URL = (z, x, y) => `https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/${z}/${y}/${x}.jpg`;
 const TILEJSON = "https://tiles.openfreemap.org/planet";
 const DEM_URL = (z, x, y) => `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`;
 
@@ -16,21 +17,26 @@ function tileRange(bbox, z, margin = 0) {
   const n = 2 ** z - 1;
   return [clamp(lon2x(bbox[0], z) - margin, 0, n), clamp(lat2y(bbox[3], z) - margin, 0, n), clamp(lon2x(bbox[2], z) + margin, 0, n), clamp(lat2y(bbox[1], z) + margin, 0, n)];
 }
+/* The kinds of tile an area keeps: [type, deepest zoom, extra tiles round the edge, bytes each, roughly].
+   "lite" areas (for use with an imported map) keep heights but no map; "satellite" ones add the pictures. */
+const areaTypes = r => [...(r.lite ? [] : [["vt", VT_MAX, 0, z => z < 12 ? 90000 : 45000]]), ["dem", DEM_MAX, 1, () => 90000], ...(r.satellite ? [["sat", SAT_MAX, 0, () => 22000]] : [])];
 /* Does a downloaded area include this tile? Keys look like "vt/14/8000/5200". */
-function areaHas(bbox, key) {
-  const [type, z, x, y] = key.split("/"); const r = tileRange(bbox, +z, type === "dem" ? 1 : 0);
+function areaHas(region, key) {
+  const [type, z, x, y] = key.split("/");
+  if (!areaTypes(region).some(t => t[0] === type)) return false;
+  const r = tileRange(region.bbox, +z, type === "dem" ? 1 : 0);
   return +x >= r[0] && +x <= r[2] && +y >= r[1] && +y <= r[3];
 }
-function areaKeys(bbox) {
+function areaKeys(region) {
   const keys = [];
-  for (const [type, max, margin] of [["vt", VT_MAX, 0], ["dem", DEM_MAX, 1]])
-    for (let z = 0; z <= max; z++) { const r = tileRange(bbox, z, margin); for (let x = r[0]; x <= r[2]; x++) for (let y = r[1]; y <= r[3]; y++) keys.push(`${type}/${z}/${x}/${y}`); }
+  for (const [type, max, margin] of areaTypes(region))
+    for (let z = 0; z <= max; z++) { const r = tileRange(region.bbox, z, margin); for (let x = r[0]; x <= r[2]; x++) for (let y = r[1]; y <= r[3]; y++) keys.push(`${type}/${z}/${x}/${y}`); }
   return keys;
 }
-function areaEstimate(bbox) {
+function areaEstimate(region) {
   let tiles = 0, bytes = 0;
-  for (const [max, margin, size] of [[VT_MAX, 0, z => z < 12 ? 90000 : 45000], [DEM_MAX, 1, () => 90000]])
-    for (let z = 0; z <= max; z++) { const r = tileRange(bbox, z, margin), n = (r[2] - r[0] + 1) * (r[3] - r[1] + 1); tiles += n; bytes += n * size(z); }
+  for (const [, max, margin, size] of areaTypes(region))
+    for (let z = 0; z <= max; z++) { const r = tileRange(region.bbox, z, margin), n = (r[2] - r[0] + 1) * (r[3] - r[1] + 1); tiles += n; bytes += n * size(z); }
   return { tiles, bytes };
 }
 
@@ -46,6 +52,12 @@ async function netTile(type, z, x, y, signal) {
   if (type === "dem") {
     const r = await fetchTimeout(DEM_URL(z, x, y), { signal });
     if (!r.ok) throw new Error("Elevation server " + r.status);
+    return r.buf;
+  }
+  if (type === "sat") {
+    const r = await fetchTimeout(SAT_URL(z, x, y), { signal });
+    if (r.status === 404 || r.status === 204) return new ArrayBuffer(0);
+    if (!r.ok) throw new Error("Satellite server " + r.status);
     return r.buf;
   }
   const url = t => t.replace("{z}", z).replace("{x}", x).replace("{y}", y);
@@ -74,6 +86,7 @@ demSource.setupMaplibre(maplibregl);
 maplibregl.addProtocol("tm", async (req, ac) => {
   const parts = req.url.slice(5).split("/");
   if (parts[0] === "vt") return { data: await getTile("vt", +parts[1], +parts[2], +parts[3], ac.signal) };
+  if (parts[0] === "sat") return { data: await getTile("sat", +parts[1], +parts[2], +parts[3], ac.signal) };
   if (parts[0] === "walk") return { data: await walkTile(+parts[1], +parts[2], +parts[3], ac.signal) };
   if (parts[0] === "pack") return { data: await Packs.tile(+parts[1], +parts[2], +parts[3], ac.signal) };
   if (parts[0] === "slope") return { data: await slopeTile(+parts[1], +parts[2], +parts[3]) };
@@ -135,19 +148,21 @@ const Offline = (() => {
   let job = null; // { id, abort, done, total, stage }
   const listeners = [];
   const changed = () => listeners.forEach(f => f());
-  const list = () => DB.all("regions").then(a => a.sort((p, q) => q.created - p.created));
+  let some = false; // is any area saved?
+  const list = () => DB.all("regions").then(a => { some = a.length > 0; return a.sort((p, q) => q.created - p.created); });
+  list().catch(() => {});
 
   async function download(region, refresh) {
     if (job) throw new Error("Another download is running");
-    const abort = new AbortController(), keys = areaKeys(region.bbox);
-    job = { id: region.id, abort, done: 0, total: keys.length, stage: "Map and hills" };
+    const abort = new AbortController(), keys = areaKeys(region);
+    job = { id: region.id, abort, done: 0, total: keys.length, stage: region.lite ? "Heights" : "Map and hills" };
     region.complete = false; region.error = "";
     let bytes = 0, failed = 0, next = 0, fatal = null;
     try {
       await DB.put("regions", region); changed();
       if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
       keepAwake(true);
-      await refreshTemplate();
+      if (!region.lite) await refreshTemplate();
       const worker = async () => {
         while (next < keys.length && !abort.signal.aborted && !fatal) {
           const key = keys[next++], [type, z, x, y] = key.split("/");
@@ -175,8 +190,12 @@ const Offline = (() => {
       if (failed) throw new Error(failed + " map pieces failed");
       job.stage = "Walking routes"; changed();
       await Routes.saveArea(region.bbox, refresh, abort.signal);
-      job.stage = "Gates and boundaries"; changed();
-      await Barriers.saveArea(region.bbox, refresh, abort.signal);
+      if (!region.lite) {
+        job.stage = "Gates and boundaries"; changed();
+        await Barriers.saveArea(region.bbox, refresh, abort.signal);
+      }
+      await SafeData.saveArea(region.bbox, refresh, abort.signal, (done, total) => { job.stage = "Road warnings"; job.done = done; job.total = total; changed(); });
+      region.safety = true;
       region.complete = true; region.updated = Date.now();
     } catch (e) {
       region.error = abort.signal.aborted ? "Stopped" : e.name === "AbortError" ? "The server took too long" : e.message || "Download failed";
@@ -194,16 +213,17 @@ const Offline = (() => {
   async function remove(id) {
     if (job && job.id === id) { job.removed = id; job.abort.abort(); return; }
     const all = await list(), others = all.filter(r => r.id !== id);
-    const tiles = (await DB.keys("tiles")).filter(k => !others.some(r => areaHas(r.bbox, k)));
+    const tiles = (await DB.keys("tiles")).filter(k => !others.some(r => areaHas(r, k)));
     const mine = all.find(r => r.id === id);
     for (let i = 0; i < tiles.length; i += 1000) await DB.delMany("tiles", tiles.slice(i, i + 1000));
     if (mine) await Routes.dropArea(mine.bbox, others.map(r => r.bbox));
-    if (mine) await Barriers.dropArea(mine.bbox, others.map(r => r.bbox));
+    if (mine) await Barriers.dropArea(mine.bbox, others.filter(r => !r.lite).map(r => r.bbox));
+    if (mine) await SafeData.dropArea(mine.bbox, others.map(r => r.bbox));
     await DB.del("cells", "idx:" + id).catch(() => {}); Finder.forget(id); // its list of places, for searching
     await DB.del("regions", id); demImages.clear(); changed();
   }
 
-  return { list, download, remove, stop: () => job && job.abort.abort(), job: () => job, onChange: f => listeners.push(f) };
+  return { any: () => some, list, download, remove, stop: () => job && job.abort.abort(), job: () => job, onChange: f => listeners.push(f) };
 })();
 
 function keepAwake(on) { if (NATIVE) NATIVE.keepAwake(!!on); else if (on && navigator.wakeLock) navigator.wakeLock.request("screen").catch(() => {}); }

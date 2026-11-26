@@ -185,7 +185,7 @@ const Plan = (() => {
     showSaved(r) {
       clear(); state.mode = r.mode === "measure" ? state.mode : r.mode;
       setData("plan", lineFeature(r.coords));
-      state.result = { coords: r.coords, distance: r.distance, duration: r.duration, steps: r.steps || [], turns: r.turns || [], hazards: r.hazards, mode: r.mode, profile: r.profile, saved: r };
+      state.result = { coords: r.coords, distance: r.distance, duration: r.duration, steps: r.steps || [], turns: r.turns || [], hazards: r.hazards, from: r.from, details: r.details, mode: r.mode, profile: r.profile, saved: r };
       state.measure = r.mode === "measure"; changed();
     }
   };

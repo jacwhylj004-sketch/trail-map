@@ -1,23 +1,23 @@
 {
-    "build":  16,
-    "name":  "1.15",
+    "build":  17,
+    "name":  "1.16",
     "shell":  8,
-    "notes":  "Walking routes keep further from main roads, with warnings on the route, during navigation and aloud. Elevation graphs in Directions and while navigating.",
+    "notes":  "Road warnings now work without internet in downloaded areas. Tap Add road warnings on areas you already have. New choices to download satellite pictures, or just heights and safety details for an imported map.",
     "files":  [
                   {
                       "path":  "app.css",
-                      "sha256":  "8378699728a41fdbb86dbe8d04261c4687d07b6b6e25908d7781dea755718646",
-                      "size":  21359
+                      "sha256":  "08489dfa66b3d90c7e3b2ae3a13623ec4d0785b49ef6855a717d8191e08c89d7",
+                      "size":  21424
                   },
                   {
                       "path":  "index.html",
-                      "sha256":  "065f90a3659ebfead1b1a79d2c45f62dfed9da76e532203f015fcc4cc32e1d8d",
-                      "size":  5903
+                      "sha256":  "dd78b499a9fd58c33fab910eb92d02a16c1f6d7f8d100e3866f9fcdfa8b2b3e3",
+                      "size":  6215
                   },
                   {
                       "path":  "version.json",
-                      "sha256":  "5f87cee17defa1da419c63c86b3e754ae33f6e36cf2c093b56bcecd574ebe32f",
-                      "size":  235
+                      "sha256":  "e778ec5942df6b162c8b37492fa1c8bbe56c13dc67c426ab02015bd9ae27e56a",
+                      "size":  290
                   },
                   {
                       "path":  "js/back.js",
@@ -36,8 +36,8 @@
                   },
                   {
                       "path":  "js/find.js",
-                      "sha256":  "438944c5eb51f2ca46f7d37138e1c6cffccf7dc02f223e109f3d97c7d3a7ebea",
-                      "size":  12736
+                      "sha256":  "0c4e3efffad7d14990df7c101bacc55cfc45a211fc8c35dd839983fe125a7f0c",
+                      "size":  12798
                   },
                   {
                       "path":  "js/graphs.js",
@@ -46,8 +46,8 @@
                   },
                   {
                       "path":  "js/map.js",
-                      "sha256":  "18c322be961951a6c20973f9d850e6cbab15649a496d9ddea27ab9c48785cace",
-                      "size":  20252
+                      "sha256":  "bfee7bee6d94caa116273f665b555aef6d1b69a0204ec7cd025ee835ca74682f",
+                      "size":  20193
                   },
                   {
                       "path":  "js/mvt.js",
@@ -61,8 +61,8 @@
                   },
                   {
                       "path":  "js/offline.js",
-                      "sha256":  "c6c872cabdb0b5b4052f202fba1c8c51c08c2f7274fa586633e7cf7e56f3e49a",
-                      "size":  12225
+                      "sha256":  "11615d8786d897e514fd5f11e00a987af0861f4cccac93492646dfb7e02a6635",
+                      "size":  13620
                   },
                   {
                       "path":  "js/osmap.js",
@@ -71,8 +71,8 @@
                   },
                   {
                       "path":  "js/packs.js",
-                      "sha256":  "6c09337af390283925ba2b3a4e22898ee3b7f74e30f3ad0bd041b9681642d412",
-                      "size":  15837
+                      "sha256":  "a17820adc7981cde154ecf7397fc44dee5260ca4337cdb64f8b55d2da08fed51",
+                      "size":  15855
                   },
                   {
                       "path":  "js/paths.js",
@@ -81,8 +81,8 @@
                   },
                   {
                       "path":  "js/plan.js",
-                      "sha256":  "a300de8a64bafebbd3e4e5a7a56e5187bed9dd81fb8efa68e3d4f78b789f681b",
-                      "size":  10949
+                      "sha256":  "9bf23c1de8ffc4d79e7ccd628702734fe7e9305cd8efe2c1f750825b74858cf0",
+                      "size":  10983
                   },
                   {
                       "path":  "js/record.js",
@@ -91,8 +91,8 @@
                   },
                   {
                       "path":  "js/router.js",
-                      "sha256":  "1eb951adc6d56c7e935dd3cab0059de4df45387f3387d3d23b32182b33a55663",
-                      "size":  26588
+                      "sha256":  "2be9526d6cafb6765cbf0b0709919d336cd69487f396d815dbe41423fdc71895",
+                      "size":  30465
                   },
                   {
                       "path":  "js/routes.js",
@@ -100,9 +100,14 @@
                       "size":  9355
                   },
                   {
+                      "path":  "js/safedata.js",
+                      "sha256":  "5c248d4bebfa93ea287b1216cd715c297e6f6eae67b254d5b32f85dd136133ad",
+                      "size":  7901
+                  },
+                  {
                       "path":  "js/safety.js",
-                      "sha256":  "1e16903b76f6938f0ce4080bea2914eb66ae16cca7f97b16589b5ed38a64ca02",
-                      "size":  11509
+                      "sha256":  "5013130bc53d7ffa30d571415cf4214f754c369e0776d33e21577379ed75458e",
+                      "size":  12286
                   },
                   {
                       "path":  "js/space.js",
@@ -111,8 +116,8 @@
                   },
                   {
                       "path":  "js/ui.js",
-                      "sha256":  "dc7cb25f33fb2c50b5c7727477c11094f111d699dafc38252a81709c725673cc",
-                      "size":  57766
+                      "sha256":  "e094df3b005524a8169a872e1715d33a9a17e3c41cc63a5d3f028bff1fe915f4",
+                      "size":  58900
                   },
                   {
                       "path":  "js/update.js",

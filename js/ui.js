@@ -101,7 +101,7 @@ function terrainControls() {
     os: '<p class="muted small">A paper-map look like an Ordnance Survey map, with blue grid squares. It is drawn from OpenStreetMap, not official OS mapping: green dashes are paths people have mapped, not confirmed rights of way. Works offline in downloaded areas.</p>',
     height: key(HEIGHTS.slice(0, 8).map(([m, c]) => [c, fmtHeight(m) + "+"])),
     slope: key(SLOPES.map(s => [`rgb(${s[2]})`, s[1]])) + '<p class="muted small">Zoom in to see steepness. It is estimated from height data about 25 m apart, so crags and short steep drops can be missed.</p>',
-    satellite: '<p class="muted small">Satellite pictures need internet and are not saved in offline maps.</p>'
+    satellite: '<p class="muted small">Satellite pictures need internet, except in downloaded areas you added them to.</p>'
   };
   const styles = [["map", "Outdoor"], ["os", "OS style"], ...(Packs.any() ? [["tt", "Imported"]] : []), ["height", "Height"], ["slope", "Steepness"], ["satellite", "Satellite"]];
   if (SETTINGS.base === "tt") about.tt = `<p class="muted small">Your imported map: ${esc(Packs.names())}. It works with no internet. Outside its area you see the ordinary map.</p>`;
@@ -292,15 +292,17 @@ async function renderSettings() {
   const job = Offline.job();
   const area = r => {
     const running = job && job.id === r.id;
-    const info = running ? `${job.stage}: ${job.done} of ${job.total}` : r.complete ? `${fmtBytes(r.bytes)} · downloaded ${new Date(r.updated).toLocaleDateString("en-GB")}` : `Not finished${r.error ? ": " + r.error : ""}`;
-    return `<div class="item" style="flex-direction:column;align-items:stretch"><div><strong>${esc(r.name)}</strong><small class="${!running && !r.complete ? "warn" : ""}">${esc(info)}</small></div>
+    const extra = [r.lite ? "heights and safety only" : "", r.satellite ? "with satellite" : ""].filter(Boolean).join(", ");
+    const info = running ? `${job.stage}: ${job.done} of ${job.total}` : r.complete ? `${fmtBytes(r.bytes)} · downloaded ${new Date(r.updated).toLocaleDateString("en-GB")}${extra ? " · " + extra : ""}` : `Not finished${r.error ? ": " + r.error : ""}`;
+    const add = !running && r.complete && !r.safety ? `<small class="warn">Add road warnings to use them here without internet.</small><div class="row end"><button class="btn primary" data-act="dl-safety" data-id="${r.id}" ${job ? "disabled" : ""}>Add road warnings</button></div>` : "";
+    return `<div class="item" style="flex-direction:column;align-items:stretch"><div><strong>${esc(r.name)}</strong><small class="${!running && !r.complete ? "warn" : ""}">${esc(info)}</small></div>${add}
       ${running ? `<progress max="${job.total}" value="${job.done}"></progress><div class="row end"><button class="btn" data-act="dl-stop">Pause</button><button class="btn danger" data-act="dl-delete" data-id="${r.id}">Delete</button></div>`
         : `<div class="row end"><button class="btn" data-act="dl-show" data-id="${r.id}">View</button><button class="btn" data-act="dl-update" data-id="${r.id}" ${job ? "disabled" : ""}>${r.complete ? "Update" : "Resume"}</button><button class="btn danger" data-act="dl-delete" data-id="${r.id}">Delete</button></div>`}</div>`;
   };
   const seg = (key, options) => `<div class="seg" role="group">${options.map(([v, l]) => `<button data-act="pref" data-k="${key}" data-v="${v}" aria-pressed="${SETTINGS[key] === v}">${l}</button>`).join("")}</div>`;
   $("#page-body").innerHTML = `
     ${NATIVE ? `<section class="panel"><h2>Mobile data</h2>${dataControls()}</section>` : ""}
-    <section class="panel"><h2>Offline maps</h2><p class="small">Download places before you go, especially ones with poor signal. The map, footpaths, contours, hills and walking routes then work with no internet. Delete areas you rarely visit to free up space.</p>
+    <section class="panel"><h2>Offline maps</h2><p class="small">Download places before you go, especially ones with poor signal. The map, search, directions, road warnings, hills and walking routes then work with no internet. Delete areas you rarely visit to free up space.</p>
       ${regions.map(area).join("") || '<p class="muted small">No maps downloaded yet.</p>'}
       <button class="btn primary" data-act="area-new" ${job ? "disabled" : ""}>Download a new area</button>
       ${job ? '<p class="muted small">Keep Trail Map open until the download finishes.</p>' : ""}<p class="muted small">${usage}</p></section>
@@ -324,9 +326,11 @@ function areaBox() {
   const b = boundsOf(pts);
   return [clamp(b[0], -180, 180), clamp(b[1], -85, 85), clamp(b[2], -180, 180), clamp(b[3], -85, 85)];
 }
+/* The area in the box, with what has been ticked to go in it. */
+const areaChoice = () => ({ bbox: areaBox(), satellite: $("#area-sat").checked, lite: !$("#area-lite-row").hidden && $("#area-lite").checked });
 function areaSize() {
   if ($("#area").hidden) return;
-  const b = areaBox(), e = areaEstimate(b), tooBig = e.tiles > MAX_TILES;
+  const region = areaChoice(), b = region.bbox, e = areaEstimate(region), tooBig = e.tiles > MAX_TILES || SafeData.tooBig(b);
   const w = haversine([b[0], (b[1] + b[3]) / 2], [b[2], (b[1] + b[3]) / 2]), h = haversine([b[0], b[1]], [b[0], b[3]]);
   $("#area-size").textContent = tooBig ? "This area is too big. Zoom in." : `About ${fmtDist(w)} × ${fmtDist(h)}, roughly ${fmtBytes(e.bytes)}.${e.bytes > 4e8 ? " Use Wi-Fi." : ""}`;
   $("#area-size").className = "small" + (tooBig ? " warn" : "");
@@ -335,7 +339,7 @@ function areaSize() {
 function openArea() {
   closeSheet(); $("#page").hidden = true; UI.tab = "map"; nav();
   map.easeTo({ bearing: 0, pitch: 0, duration: 0 }); GPS.setFollow("off");
-  $("#area-name").value = ""; $("#search").hidden = true; $("#area").hidden = false; floating(); areaSize();
+  $("#area-name").value = ""; $("#area-sat").checked = false; $("#area-lite").checked = false; $("#area-lite-row").hidden = !Packs.any(); $("#search").hidden = true; $("#area").hidden = false; floating(); areaSize();
 }
 function closeArea() { if ($("#area").hidden) return; $("#area").hidden = true; $("#search").hidden = false; floating(); }
 async function startDownload(region, refresh) {
@@ -465,7 +469,7 @@ const ACTIONS = {
     const last = s.stops[s.stops.length - 1];
     const name = await dialog({ title: "Save walk", input: s.measure ? "Measured walk" : "Walk to " + (last ? last.name : "…"), yes: "Save" });
     if (!name || s.result !== r) return;
-    const saved = { id: uid(), name: name.slice(0, 80), mode: s.measure ? "measure" : s.mode, coords: r.coords, distance: r.distance, duration: r.duration, steps: r.steps, profile: r.profile || null, turns: r.turns, hazards: r.hazards };
+    const saved = { id: uid(), name: name.slice(0, 80), mode: s.measure ? "measure" : s.mode, coords: r.coords, distance: r.distance, duration: r.duration, steps: r.steps, profile: r.profile || null, turns: r.turns, hazards: r.hazards, from: r.from, details: r.details };
     SAVED.routes.unshift(saved); persistSaved(); r.saved = saved; renderSheet(); toast("Walk saved. Download its area to see the map offline.");
   },
   "walk-delete": async () => { const r = Plan.state.result && Plan.state.result.saved; if (r && await dialog({ title: "Delete saved walk?", text: r.name, yes: "Delete" })) { SAVED.routes = SAVED.routes.filter(x => x.id !== r.id); persistSaved(); Plan.clear(); goTab("saved"); } },
@@ -501,11 +505,11 @@ const ACTIONS = {
   "area-new": () => openArea(),
   "area-cancel": () => { closeArea(); goTab("settings"); },
   "area-download": async () => {
-    const bbox = areaBox(); if (areaEstimate(bbox).tiles > MAX_TILES) return;
+    const choice = areaChoice(); if (areaEstimate(choice).tiles > MAX_TILES || SafeData.tooBig(choice.bbox)) return;
     if (!online()) { toast(needsNet("Connect to the internet to download")); return; }
     if (Offline.job()) { toast("Another download is running"); return; }
     const name = $("#area-name").value.trim() || "Map " + new Date().toLocaleDateString("en-GB");
-    const region = { id: uid(), name, bbox, created: Date.now(), bytes: 0, complete: false };
+    const region = Object.assign({ id: uid(), name, created: Date.now(), bytes: 0, complete: false }, choice);
     closeArea(); goTab("settings"); startDownload(region, false);
   },
   "pack-import": () => Packs.pick(),
@@ -520,6 +524,7 @@ const ACTIONS = {
   },
   "pack-delete": async d => { const p = Packs.get(d.id); if (p && await dialog({ title: "Delete imported map?", text: `${p.name} will be removed from this phone. You can import its file again later.`, yes: "Delete" })) { await Packs.remove(p.id); toast("Deleted " + p.name); } },
   "dl-stop": () => Offline.stop(),
+  "dl-safety": async d => { const r = (await Offline.list()).find(x => x.id === d.id); if (r) startDownload(r, false); },
   "dl-update": async d => { const r = (await Offline.list()).find(x => x.id === d.id); if (r) startDownload(r, r.complete); },
   "dl-show": async d => { const r = (await Offline.list()).find(x => x.id === d.id); if (!r) return; goTab("map"); GPS.setFollow("off"); map.fitBounds([[r.bbox[0], r.bbox[1]], [r.bbox[2], r.bbox[3]]], { padding: 30 }); },
   "dl-delete": async d => {
@@ -533,6 +538,7 @@ document.addEventListener("click", e => {
   const fn = ACTIONS[b.dataset.act]; if (fn) fn(b.dataset);
 });
 document.addEventListener("change", e => {
+  if (map && /^area-(sat|lite)$/.test(e.target.id)) { areaSize(); return; }
   const k = e.target.dataset && e.target.dataset.set; if (!k || !map) return;
   if (k === "mobile") { NATIVE.setMobileData(e.target.checked); dataBlocked = NATIVE.dataBlocked(); connectionChanged(); return; }
   SETTINGS[k] = e.target.checked; saveSettings();

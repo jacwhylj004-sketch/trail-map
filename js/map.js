@@ -24,7 +24,7 @@ async function buildStyle() {
     hills: { type: "raster-dem", tiles: [demSource.sharedDemProtocolUrl], encoding: "terrarium", tileSize: 256, maxzoom: DEM_MAX, attribution: '<a href="https://registry.opendata.aws/terrain-tiles/">Terrain Tiles</a>' },
     hills3d: { type: "raster-dem", tiles: [demSource.sharedDemProtocolUrl], encoding: "terrarium", tileSize: 256, maxzoom: DEM_MAX },
     contours: contourSource(),
-    satellite: { type: "raster", tiles: ["https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg"], tileSize: 256, maxzoom: 14, attribution: '<a href="https://s2maps.eu">Sentinel-2 cloudless 2020</a> by EOX (contains modified Copernicus data)' },
+    satellite: { type: "raster", tiles: ["tm://sat/{z}/{x}/{y}"], tileSize: 256, maxzoom: SAT_MAX, attribution: '<a href="https://s2maps.eu">Sentinel-2 cloudless 2020</a> by EOX (contains modified Copernicus data)' },
     overview: { type: "raster", tiles: ["https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png"], tileSize: 256, maxzoom: 17, attribution: '<a href="https://hiking.waymarkedtrails.org">Waymarked Trails</a>' },
     slope: { type: "raster", tiles: ["tm://slope/{z}/{x}/{y}"], tileSize: 256, maxzoom: DEM_MAX },
     walk: { type: "vector", tiles: ["tm://walk/{z}/{x}/{y}"], minzoom: 12, maxzoom: VT_MAX },

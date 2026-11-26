@@ -94,7 +94,7 @@ const Finder = (() => {
   }
 
   async function loadRegions() {
-    const list = await Offline.list().catch(() => []);
+    const list = (await Offline.list().catch(() => [])).filter(r => !r.lite); // "heights only" areas have no places
     for (const id of regions.keys()) if (!list.some(r => r.id === id)) regions.delete(id);
     for (const r of list) {
       const stamp = (r.updated || 0) + ":" + r.bytes;

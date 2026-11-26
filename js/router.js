@@ -8,6 +8,8 @@ const Router = (() => {
   /* How willingly each kind of way is used: length is multiplied by this (1 is ideal); missing means never. */
   const FOOT = { path: 1, footway: 1, pedestrian: 1, bridleway: 1, track: 1, cycleway: 1.05, steps: 1.1, service: 1.05, minor: 1.15, tertiary: 1.8, secondary: 2.8, primary: 4.5, trunk: 9, ferry: 1.5 }; // walkers go well round main roads
   const BIKE = { cycleway: 0.85, minor: 1, tertiary: 1.05, service: 1.1, secondary: 1.2, primary: 1.5, trunk: 3, track: 1.5, bridleway: 1.4, path: 2.5, footway: 4, pedestrian: 2.5, ferry: 1.5 };
+  const PAVED = { trunk: 3, primary: 2, secondary: 1.35, tertiary: 1.2 }; // main roads known to have a pavement are less bad
+  const pavement = tags => Object.keys(tags).some(k => k.startsWith("sidewalk") && /^(yes|both|left|right|separate)$/.test(tags[k]));
   const CAR = { motorway: 110, trunk: 85, primary: 65, secondary: 55, tertiary: 45, minor: 30, service: 15, ferry: 15 }; // km/h
   const PACK_CLASS = { 1: "motorway", 2: "trunk", 3: "primary", 4: "secondary", 5: "tertiary", 6: "minor", 7: "service",
     0x8: "path", 0x9: "cycleway", 0xa: "track", 0xc: "path", 0xd: "pedestrian", 0xf: "bridleway", 0x11: "bridleway", 0x13: "steps", 0x15: "path", 0x16: "path", 0x10102: "path", 0x11501: "cycleway" }; // (0x15 and 0x11501 mark long routes, and fill gaps)
@@ -33,7 +35,7 @@ const Router = (() => {
     return parts;
   }
 
-  function waysFrom(buf, tx, ty, source, out) {
+  function waysFrom(buf, tx, ty, source, out) { // out: { ways, names, rails }
     const pack = source.type === "pack";
     const tile = readTile(buf, pack ? ["line"] : ["transportation", "transportation_name"]);
     const place = (part, extent) => clip(part.map(p => [p[0] * EXTENT / extent, p[1] * EXTENT / extent]), EXTENT)
@@ -47,16 +49,19 @@ const Router = (() => {
           if (name) for (const part of f.parts) for (const run of place(part, extent)) out.names.push({ name: String(name), pts: run });
           continue;
         }
-        let cls, name = "", oneway = 0, level = 0;
+        /* railways at ground level, for warning where a path crosses one (an imported map doesn't show bridges) */
+        if (out.rails && (pack ? p.t === 0x14 : p.class === "rail" && !p.brunnel)) for (const part of f.parts) out.rails.push(...place(part, extent));
+        let cls, name = "", oneway = 0, level = 0, ford = false;
         if (pack) { cls = PACK_CLASS[p.t]; name = clean(p.n); }
         else {
           cls = p.class === "path" ? (["footway", "pedestrian", "cycleway", "bridleway", "steps"].includes(p.subclass) ? p.subclass : "path") : p.class;
           if (p.access === "no") continue;
           oneway = +p.oneway || 0;
           level = p.brunnel === "bridge" ? 1 : p.brunnel === "tunnel" ? -1 : 0;
+          ford = p.brunnel === "ford";
         }
         if (!cls || !(cls in FOOT || cls in CAR)) continue;
-        for (const part of f.parts) for (const run of place(part, extent)) out.ways.push({ pts: run, cls, name, oneway, level });
+        for (const part of f.parts) for (const run of place(part, extent)) out.ways.push({ pts: run, cls, name, oneway, level, ford });
       }
     }
   }
@@ -124,7 +129,8 @@ const Router = (() => {
       if (!CAR[e.way.cls] || (e.way.oneway && (e.way.oneway > 0) !== forward)) return Infinity;
       return e.len / (CAR[e.way.cls] / 3.6);
     }
-    const factor = (mode === "bike" ? BIKE : FOOT)[e.way.cls];
+    let factor = (mode === "bike" ? BIKE : FOOT)[e.way.cls];
+    if (mode === "foot" && factor) factor = (e.paved ? PAVED[e.way.cls] : factor) * (e.rough || 1);
     if (!factor || (mode === "bike" && e.way.oneway && (e.way.oneway > 0) !== forward && e.way.cls !== "cycleway")) return Infinity;
     return e.len * factor;
   }
@@ -331,9 +337,61 @@ const Router = (() => {
     };
   }
 
+  /* Tells the network what the saved safety details know, so the way found keeps clear of the worst. */
+  function inform(net, safety, ll) {
+    for (const e of net.edges) {
+      const a = ll(net.X[e.a], net.Y[e.a]), b = ll(net.X[e.b], net.Y[e.b]);
+      if (PAVED[e.way.cls]) { const road = safety.road(a, b); if (road && pavement(road.tags)) e.paved = true; }
+      const rough = safety.rough(a, b);
+      if (rough) e.rough = rough.tags.sac_scale && !rough.tags.ford ? 3 : 1.5;
+    }
+  }
+
+  /* Whether a stretch of the route cuts across a railway. */
+  function railCrossings(rails) {
+    const CELL = 128, grid = new Map();
+    for (const run of rails) for (let i = 1; i < run.length; i++) {
+      const s = [...run[i - 1], ...run[i]];
+      for (let cx = Math.floor(Math.min(s[0], s[2]) / CELL); cx <= Math.floor(Math.max(s[0], s[2]) / CELL); cx++)
+        for (let cy = Math.floor(Math.min(s[1], s[3]) / CELL); cy <= Math.floor(Math.max(s[1], s[3]) / CELL); cy++) {
+          const k = cx * 262144 + cy; let l = grid.get(k); if (!l) grid.set(k, l = []); l.push(s);
+        }
+    }
+    const side = (ax, ay, bx, by, px, py) => Math.sign((bx - ax) * (py - ay) - (by - ay) * (px - ax));
+    return (a, b) => {
+      for (let cx = Math.floor(Math.min(a[0], b[0]) / CELL); cx <= Math.floor(Math.max(a[0], b[0]) / CELL); cx++)
+        for (let cy = Math.floor(Math.min(a[1], b[1]) / CELL); cy <= Math.floor(Math.max(a[1], b[1]) / CELL); cy++)
+          for (const [x1, y1, x2, y2] of grid.get(cx * 262144 + cy) || [])
+            if (side(a[0], a[1], b[0], b[1], x1, y1) !== side(a[0], a[1], b[0], b[1], x2, y2) && side(x1, y1, x2, y2, a[0], a[1]) !== side(x1, y1, x2, y2, b[0], b[1])) return true;
+      return false;
+    };
+  }
+
+  /* Warnings for a route found on the phone. { hazards, details: "saved" if the safety details covered all of it } */
+  function warnings(net, path, coords, names, source, rails, safety) {
+    const crosses = railCrossings(rails);
+    let complete = true;
+    const segments = path.steps.map((s, i) => {
+      const edge = net.edges[s.edge], a = coords[i], b = coords[i + 1], known = safety.covered([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]);
+      if (!known) complete = false;
+      const road = PAVED[edge.way.cls] ? safety.road(a, b) : null, rough = safety.rough(a, b), here = safety.points(a, b), node = {};
+      const tags = Object.assign({}, road && road.tags, rough && rough.tags, edge.way.ford ? { ford: "yes" } : null);
+      if (here.has("ford")) node.ford = "yes";
+      if (here.has("rail")) node.railway = "crossing";
+      else if (!known && edge.way.level === 0 && crosses(path.points[i], path.points[i + 1])) node.railway = source.type === "area" ? "crossing" : "check";
+      return { len: haversine(a, b), cls: edge.way.cls, tags, node, mapped: !!road };
+    });
+    const hazards = Safety.find(segments);
+    for (const h of hazards) {
+      let along = 0, i = 0; while (i < segments.length - 1 && along + segments[i].len < (h.from + h.to) / 2) along += segments[i++].len;
+      h.name = Safety.of(h).point ? "" : names[i] || "";
+    }
+    return { hazards, details: complete ? "saved" : "basic" };
+  }
+
   async function attempt(source, stops, mode, tiles, progress, stale) {
     source.x0 = Math.min(...tiles.map(t => t[0])) * EXTENT; source.y0 = Math.min(...tiles.map(t => t[1])) * EXTENT;
-    const found = { ways: [], names: [] };
+    const found = { ways: [], names: [], rails: [] };
     let next = 0, done = 0;
     await Promise.all(Array.from({ length: 6 }, async () => {
       while (next < tiles.length && !stale()) {
@@ -349,6 +407,10 @@ const Router = (() => {
     const unit = ll => { const r = ll[1] * RAD; return [(ll[0] + 180) / 360 * world - source.x0, (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * world - source.y0]; };
     const ll = (x, y) => [x2lon((x + source.x0) / EXTENT, Z), y2lat((y + source.y0) / EXTENT, Z)];
     const net = build(found.ways, 40075016.686 * Math.cos(stops[0][1] * RAD) / world);
+    const west = Math.min(...tiles.map(t => t[0])), north = Math.min(...tiles.map(t => t[1]));
+    const safety = mode === "foot" ? await SafeData.load([x2lon(west, Z), y2lat(Math.max(...tiles.map(t => t[1])) + 1, Z), x2lon(Math.max(...tiles.map(t => t[0])) + 1, Z), y2lat(north, Z)]) : null;
+    if (stale()) return null;
+    if (safety) inform(net, safety, ll);
     const snapped = snap(net, mode, stops.map(unit));
     if (!snapped) return null;
     const path = { points: [], steps: [] }, legs = [];
@@ -369,12 +431,8 @@ const Router = (() => {
     legs.slice(1).forEach(i => turns.push({ along: lineLength(coords.slice(0, i + 1)), dir: "stop", text: "You reach a stop on your route" }));
     turns.sort((a, b) => a.along - b.along);
     turns.push({ along: distance, dir: "arrive", text: "Arrive at your destination" });
-    let hazards;
-    if (mode === "foot") { // these maps don't say where the pavements are
-      hazards = Safety.find(path.steps.map((s, i) => ({ len: haversine(coords[i], coords[i + 1]), cls: net.edges[s.edge].way.cls, mapped: false })));
-      for (const h of hazards) { let along = 0, i = 0; while (i < names.length - 1 && along + haversine(coords[i], coords[i + 1]) < (h.from + h.to) / 2) { along += haversine(coords[i], coords[i + 1]); i++; } h.name = names[i] || ""; }
-    }
-    return { coords, distance, duration, turns, hazards, from: source.type, gaps: snapped.map(s => s.d * net.perUnit) };
+    const checked = safety ? warnings(net, path, coords, names, source, found.rails, safety) : {};
+    return Object.assign({ coords, distance, duration, turns, from: source.type, gaps: snapped.map(s => s.d * net.perUnit) }, checked);
   }
 
   /* stops: [[lon, lat]]; mode: "foot", "bike" or "car". Resolves to a route, or throws a message fit to show. */
